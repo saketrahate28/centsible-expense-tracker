@@ -1,0 +1,75 @@
+name: Deploy Centsible
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  backend:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore & Build
+        run: |
+          cd CentsibleBackend/src/Centsible.Api
+          dotnet restore
+          dotnet build -c Release
+
+      - name: Test Migrations
+        run: |
+          docker run -d --name test-db -e POSTGRES_PASSWORD=pass -p 5433:5432 postgres:16-alpine
+          sleep 5
+          dotnet tool install --global dotnet-ef --version 8.*
+          $env:ConnectionStrings__Default = "Host=localhost;Port=5433;Database=centsible;Username=postgres;Password=pass"
+          dotnet ef database update --project ../Centsible.Infrastructure --startup-project ../Centsible.Api --configuration Release
+          docker rm -f test-db
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & Push API image
+        run: |
+          cd CentsibleBackend/src/Centsible.Api
+          docker build -t ${{ secrets.DOCKERHUB_USER }}/centsible-api:latest .
+          docker push ${{ secrets.DOCKERHUB_USER }}/centsible-api:latest
+
+  mobile:
+    runs-on: windows-latest
+    needs: backend
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install deps
+        working-directory: frontend/CentsibleMobile
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend/CentsibleMobile
+        run: npm run lint
+
+      - name: Build web bundle (optional)
+        working-directory: frontend/CentsibleMobile
+        env:
+          EXPO_PUBLIC_API_URL: https://your-domain.com/api
+        run: npx expo export:web
+
+      - name: Publish to Expo
+        working-directory: frontend/CentsibleMobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: npx expo publish --non-interactive

@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  centsible-db:
+    image: postgres:15-alpine
+    container_name: centsible-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: CentsibleDB
+    ports:
+      - "5432:5432"
+    volumes:
+      - centsible-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  centsible-api:
+    build:
+      context: ./src
+      dockerfile: Centsible.Api/Dockerfile
+    container_name: centsible-api
+    restart: always
+    ports:
+      - "5272:8080"
+    env_file:
+      - .env
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+    depends_on:
+      centsible-db:
+        condition: service_healthy
+
+volumes:
+  centsible-db-data:

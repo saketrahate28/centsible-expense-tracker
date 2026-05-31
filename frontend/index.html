@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Centsible — Smart Expense Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <!-- ========== SCREEN 1: LANDING ========== -->
+  <div id="screen-landing" class="screen active">
+    <div class="landing-bg">
+      <div class="blob blob1"></div>
+      <div class="blob blob2"></div>
+      <div class="blob blob3"></div>
+      <canvas id="coin-canvas"></canvas>
+    </div>
+    <div class="landing-content">
+      <div class="logo-wrap">
+        <div class="rupee-coin-wrap">
+          <img src="rupee_coin.png" alt="Rupee Coin" class="rupee-coin-img" id="rupee-coin" />
+          <div class="coin-stars" id="coin-stars"></div>
+        </div>
+        <h1 class="logo-text">Centsible</h1>
+        <p class="logo-tagline">Your money, your rules.</p>
+      </div>
+      <div class="auth-card glass-card">
+        <h2>Welcome back 👋</h2>
+        <p class="auth-sub">Sign in to continue your journey</p>
+        <button class="btn btn-google" id="google-btn" onclick="goTo('screen-dashboard')">
+          <svg width="20" height="20" viewBox="0 0 48 48">
+            <path fill="#FFC107"
+              d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36a12 12 0 1 1 0-24c3.1 0 5.8 1.1 7.9 2.9l5.7-5.7A19.9 19.9 0 0 0 24 4 20 20 0 1 0 44 24c0-1.3-.1-2.6-.4-3.9z" />
+            <path fill="#FF3D00"
+              d="m6.3 14.7 6.6 4.8A12 12 0 0 1 24 12c3.1 0 5.8 1.1 7.9 2.9l5.7-5.7A19.9 19.9 0 0 0 24 4 20 20 0 0 0 6.3 14.7z" />
+            <path fill="#4CAF50"
+              d="M24 44a19.9 19.9 0 0 0 13.4-5.2l-6.2-5.2A12 12 0 0 1 12 30.3l-6.5 5A20 20 0 0 0 24 44z" />
+            <path fill="#1976D2"
+              d="M43.6 20.1H42V20H24v8h11.3a12 12 0 0 1-4.1 5.6l6.2 5.1A19.8 19.8 0 0 0 44 24c0-1.3-.1-2.6-.4-3.9z" />
+          </svg>
+          Continue with Google
+        </button>
+        <div class="divider"><span>or</span></div>
+        <div class="input-group">
+          <label>Phone / Email</label>
+          <input type="text" placeholder="+91 98765 43210" id="phone-input" />
+        </div>
+        <button class="btn btn-primary" onclick="goTo('screen-dashboard')">Send OTP →</button>
+        <p class="switch-auth">New here? <a href="#" onclick="showSignup()">Create account</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SCREEN 2: DASHBOARD ========== -->
+  <div id="screen-dashboard" class="screen">
+    <!-- Top Bar -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <span class="greeting">Hey, Aryan 👋</span>
+        <span class="date-label">March 2026</span>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn notif-btn" onclick="showNotif()">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+          <span class="notif-dot"></span>
+        </button>
+        <div class="account-switcher" onclick="showAccountMenu()">
+          <div class="account-avatar hdfc">H</div>
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Account Menu Dropdown -->
+    <div id="account-menu" class="account-menu glass-card hidden">
+      <p class="menu-title">Your Accounts</p>
+      <div class="account-item active" onclick="switchAccount('HDFC Savings','H','hdfc')">
+        <div class="account-avatar hdfc">H</div>
+        <div>
+          <p class="acc-name">HDFC Savings</p>
+          <p class="acc-sub">₹24,500 remaining</p>
+        </div>
+        <span class="check">✓</span>
+      </div>
+      <div class="account-item" onclick="switchAccount('ICICI Credit','I','icici')">
+        <div class="account-avatar icici">I</div>
+        <div>
+          <p class="acc-name">ICICI Credit Card</p>
+          <p class="acc-sub">₹38,200 remaining</p>
+        </div>
+      </div>
+      <div class="account-item" onclick="switchAccount('Paytm Wallet','P','paytm')">
+        <div class="account-avatar paytm">P</div>
+        <div>
+          <p class="acc-name">Paytm Wallet</p>
+          <p class="acc-sub">₹1,200 remaining</p>
+        </div>
+      </div>
+      <button class="btn-add-account">+ Add Account</button>
+    </div>
+
+    <!-- Main Dashboard Content -->
+    <div class="dash-content">
+      <!-- Spend Summary Card -->
+      <div class="spend-card glass-card">
+        <div class="spend-header">
+          <div>
+            <p class="spend-label">Total Spent</p>
+            <h2 class="spend-amount" id="total-spent">₹15,480</h2>
+            <p class="spend-sub">of ₹25,000 monthly limit</p>
+          </div>
+          <div class="spend-ring-wrap">
+            <svg class="spend-ring" width="80" height="80" viewBox="0 0 80 80">
+              <circle cx="40" cy="40" r="32" fill="none" stroke="#ffffff18" stroke-width="8" />
+              <circle cx="40" cy="40" r="32" fill="none" stroke="url(#ringGrad)" stroke-width="8" stroke-dasharray="201"
+                stroke-dashoffset="81" stroke-linecap="round" transform="rotate(-90 40 40)" id="spend-ring-circle" />
+              <defs>
+                <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#a855f7" />
+                  <stop offset="100%" stop-color="#22d3ee" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <span class="ring-pct">62%</span>
+          </div>
+        </div>
+        <div class="budget-bar-wrap">
+          <div class="budget-bar">
+            <div class="budget-fill" id="budget-fill" style="width:62%"></div>
+          </div>
+          <p class="budget-hint">⚡ ₹9,520 left · 21 days remaining</p>
+        </div>
+      </div>
+
+      <!-- Quick Stats Row -->
+      <div class="stats-row">
+        <div class="stat-chip glass-card">
+          <span class="stat-icon">📈</span>
+          <div>
+            <p class="stat-val">+18%</p>
+            <p class="stat-lbl">vs last month</p>
+          </div>
+        </div>
+        <div class="stat-chip glass-card">
+          <span class="stat-icon">🔥</span>
+          <div>
+            <p class="stat-val">7-day</p>
+            <p class="stat-lbl">budget streak</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Weekly Bar Chart -->
+      <div class="section-card glass-card">
+        <div class="section-header">
+          <h3>This Week</h3>
+          <span class="badge-chip">Mar 4–10</span>
+        </div>
+        <div class="bar-chart">
+          <div class="bar-group" style="--h:45%" data-amount="₹1,240">
+            <div class="bar"></div>
+            <div class="bar-tooltip">₹1,240</div><span>Mon</span>
+          </div>
+          <div class="bar-group" style="--h:70%" data-amount="₹2,100">
+            <div class="bar active"></div>
+            <div class="bar-tooltip">₹2,100</div><span>Tue</span>
+          </div>
+          <div class="bar-group" style="--h:30%" data-amount="₹890">
+            <div class="bar"></div>
+            <div class="bar-tooltip">₹890</div><span>Wed</span>
+          </div>
+          <div class="bar-group" style="--h:90%" data-amount="₹3,180">
+            <div class="bar danger"></div>
+            <div class="bar-tooltip">₹3,180 📍 Biggest</div><span>Thu</span>
+          </div>
+          <div class="bar-group" style="--h:55%" data-amount="₹1,650">
+            <div class="bar"></div>
+            <div class="bar-tooltip">₹1,650</div><span>Fri</span>
+          </div>
+          <div class="bar-group" style="--h:20%" data-amount="₹560">
+            <div class="bar"></div>
+            <div class="bar-tooltip">₹560</div><span>Sat</span>
+          </div>
+          <div class="bar-group today" style="--h:38%" data-amount="₹1,120">
+            <div class="bar active"></div>
+            <div class="bar-tooltip">₹1,120 · Today</div><span>Today</span>
+          </div>
+        </div>
+        <p class="week-total">₹5,410 total this week · Thursday was your biggest spend day 📍</p>
+      </div>
+
+      <!-- Recent Transactions -->
+      <div class="section-card glass-card">
+        <div class="section-header">
+          <h3>Recent</h3>
+          <a href="#" class="see-all" onclick="goTo('screen-analytics')">See all →</a>
+        </div>
+        <div class="txn-list" id="txn-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SCREEN 3: ANALYTICS ========== -->
+  <div id="screen-analytics" class="screen">
+    <div class="topbar">
+      <button class="back-btn" onclick="goTo('screen-dashboard')">← Back</button>
+      <h2 class="topbar-title">Analytics</h2>
+      <button class="icon-btn" onclick="showMonthPicker()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      </button>
+    </div>
+    <div class="dash-content">
+      <!-- Donut Chart Card -->
+      <div class="section-card glass-card">
+        <div class="section-header">
+          <h3>By Category</h3>
+          <span class="badge-chip">March</span>
+        </div>
+        <div class="donut-wrap">
+          <svg class="donut-svg" width="180" height="180" viewBox="0 0 180 180">
+            <circle cx="90" cy="90" r="70" fill="none" stroke="#1e1b4b" stroke-width="28" />
+            <!-- Food -->
+            <circle cx="90" cy="90" r="70" fill="none" stroke="#a855f7" stroke-width="28" stroke-dasharray="440"
+              stroke-dashoffset="0" stroke-dasharray="110 330" transform="rotate(-90 90 90)" class="donut-seg" />
+            <!-- Transport -->
+            <circle cx="90" cy="90" r="70" fill="none" stroke="#22d3ee" stroke-width="28" stroke-dasharray="66 374"
+              stroke-dashoffset="-110" transform="rotate(-90 90 90)" class="donut-seg" />
+            <!-- Shopping -->
+            <circle cx="90" cy="90" r="70" fill="none" stroke="#f43f5e" stroke-width="28" stroke-dasharray="79 361"
+              stroke-dashoffset="-176" transform="rotate(-90 90 90)" class="donut-seg" />
+            <!-- Bills -->
+            <circle cx="90" cy="90" r="70" fill="none" stroke="#fb923c" stroke-width="28" stroke-dasharray="55 385"
+              stroke-dashoffset="-255" transform="rotate(-90 90 90)" class="donut-seg" />
+            <!-- Other -->
+            <circle cx="90" cy="90" r="70" fill="none" stroke="#4ade80" stroke-width="28" stroke-dasharray="130 310"
+              stroke-dashoffset="-310" transform="rotate(-90 90 90)" class="donut-seg" />
+            <text x="90" y="85" text-anchor="middle" fill="white" font-size="18" font-weight="700"
+              font-family="Space Grotesk">₹15.4K</text>
+            <text x="90" y="105" text-anchor="middle" fill="#94a3b8" font-size="11" font-family="Inter">total</text>
+          </svg>
+          <div class="legend">
+            <div class="legend-item"><span class="dot" style="background:#a855f7"></span>Food & Delivery <b>₹4,200</b>
+            </div>
+            <div class="legend-item"><span class="dot" style="background:#22d3ee"></span>Transport <b>₹2,400</b></div>
+            <div class="legend-item"><span class="dot" style="background:#f43f5e"></span>Shopping <b>₹3,100</b></div>
+            <div class="legend-item"><span class="dot" style="background:#fb923c"></span>Bills <b>₹2,080</b></div>
+            <div class="legend-item"><span class="dot" style="background:#4ade80"></span>Others <b>₹3,700</b></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment App Breakdown -->
+      <div class="section-card glass-card">
+        <div class="section-header">
+          <h3>Payment Apps</h3>
+        </div>
+        <div class="pay-app-list">
+          <div class="pay-app-row">
+            <span class="pay-icon">🌊</span>
+            <div class="pay-bar-wrap">
+              <div class="pay-info"><span>GPay</span><b>₹8,200</b></div>
+              <div class="pay-bar-bg">
+                <div class="pay-bar-fill" style="width:53%;background:#4285F4"></div>
+              </div>
+            </div>
+          </div>
+          <div class="pay-app-row">
+            <span class="pay-icon">📱</span>
+            <div class="pay-bar-wrap">
+              <div class="pay-info"><span>PhonePe</span><b>₹4,900</b></div>
+              <div class="pay-bar-bg">
+                <div class="pay-bar-fill" style="width:32%;background:#5f259f"></div>
+              </div>
+            </div>
+          </div>
+          <div class="pay-app-row">
+            <span class="pay-icon">💙</span>
+            <div class="pay-bar-wrap">
+              <div class="pay-info"><span>Paytm</span><b>₹1,500</b></div>
+              <div class="pay-bar-bg">
+                <div class="pay-bar-fill" style="width:10%;background:#00baf2"></div>
+              </div>
+            </div>
+          </div>
+          <div class="pay-app-row">
+            <span class="pay-icon">💳</span>
+            <div class="pay-bar-wrap">
+              <div class="pay-info"><span>Card/Other</span><b>₹780</b></div>
+              <div class="pay-bar-bg">
+                <div class="pay-bar-fill" style="width:5%;background:#64748b"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Insights -->
+      <div class="section-card glass-card insight-card">
+        <div class="section-header">
+          <h3>🤖 AI Insights</h3><span class="badge-chip free">FREE</span>
+        </div>
+        <div class="insight-list">
+          <div class="insight-item">💡 You spend <b>40% more on food on weekends</b>. Try cooking once this Sunday.
+          </div>
+          <div class="insight-item">📉 At this pace, you'll hit your ₹25K limit by <b>March 24</b>.</div>
+          <div class="insight-item">🔥 <b>Zomato</b> is your #1 merchant — ₹2,100 this month alone.</div>
+          <div class="insight-item">⚡ Your best week was Feb 24–Mar 2. Only ₹2,800 spent!</div>
+        </div>
+      </div>
+
+      <!-- Heatmap Calendar -->
+      <div class="section-card glass-card">
+        <div class="section-header">
+          <h3>Daily Spend</h3><span class="badge-chip">Heatmap</span>
+        </div>
+        <div class="heatmap" id="heatmap"></div>
+        <div class="heatmap-legend">
+          <span>Less</span>
+          <div class="hm-dot" style="background:#1e1b4b"></div>
+          <div class="hm-dot" style="background:#3730a3"></div>
+          <div class="hm-dot" style="background:#6d28d9"></div>
+          <div class="hm-dot" style="background:#a855f7"></div>
+          <div class="hm-dot" style="background:#e879f9"></div>
+          <span>More</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SCREEN 4: ADD EXPENSE ========== -->
+  <div id="screen-add" class="screen">
+    <div class="topbar">
+      <button class="back-btn" onclick="goTo('screen-dashboard')">← Back</button>
+      <h2 class="topbar-title">Add Expense</h2>
+    </div>
+    <div class="dash-content">
+      <div class="add-expense-card glass-card">
+        <div class="amount-input-wrap">
+          <span class="currency-symbol">₹</span>
+          <input type="number" class="amount-big-input" id="exp-amount" placeholder="0"
+            oninput="updateAmount(this.value)" />
+        </div>
+        <p class="amount-words" id="amount-words">Enter amount</p>
+
+        <div class="category-grid" id="cat-grid">
+          <!-- Populated by JS -->
+        </div>
+
+        <div class="form-group">
+          <label>Merchant / Note</label>
+          <input type="text" class="form-input" id="exp-merchant" placeholder="e.g. Zomato, Auto ride..." />
+        </div>
+
+        <div class="form-group">
+          <label>Paid via</label>
+          <div class="payment-opts" id="pay-opts">
+            <button class="pay-opt active" data-val="GPay">🌊 GPay</button>
+            <button class="pay-opt" data-val="PhonePe">📱 PhonePe</button>
+            <button class="pay-opt" data-val="Paytm">💙 Paytm</button>
+            <button class="pay-opt" data-val="Cash">💵 Cash</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" class="form-input" id="exp-date" value="2026-03-10" />
+        </div>
+
+        <button class="btn btn-primary btn-full" onclick="addExpense()">
+          💰 Add Expense
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SCREEN 5: SHARED BUDGET ========== -->
+  <div id="screen-shared" class="screen">
+    <div class="topbar">
+      <button class="back-btn" onclick="goTo('screen-dashboard')">← Back</button>
+      <h2 class="topbar-title">Shared Budget</h2>
+      <button class="btn-text" onclick="createGroup()">+ New</button>
+    </div>
+    <div class="dash-content">
+      <div class="free-trial-banner glass-card">
+        <span>🎉 Shared Budgets free for <b>2 months</b> as a new user!</span>
+        <span class="trial-days">47 days left</span>
+      </div>
+
+      <div class="section-card glass-card">
+        <div class="section-header">
+          <h3>Flat Budget 🏠</h3><span class="badge-chip">3 members</span>
+        </div>
+        <div class="group-members">
+          <div class="member-chip">👤 You</div>
+          <div class="member-chip">👤 Rahul</div>
+          <div class="member-chip">👤 Priya</div>
+        </div>
+        <div class="balance-section">
+          <div class="balance-row you-owe">
+            <span>Rahul owes you</span>
+            <b class="green">+₹850</b>
+          </div>
+          <div class="balance-row">
+            <span>You owe Priya</span>
+            <b class="red">-₹320</b>
+          </div>
+        </div>
+        <div class="group-txns">
+          <div class="grp-txn"><span>🛒 BigBasket</span><span>₹1,400</span><span class="split-by">Split equally</span>
+          </div>
+          <div class="grp-txn"><span>⚡ Electricity</span><span>₹1,800</span><span class="split-by">Split equally</span>
+          </div>
+          <div class="grp-txn"><span>🍕 Pizza Hut</span><span>₹960</span><span class="split-by">You paid</span></div>
+        </div>
+        <button class="btn btn-outline btn-full" onclick="settleUp()">Settle Up via UPI →</button>
+      </div>
+
+      <div class="section-card glass-card">
+        <div class="section-header">
+          <h3>Goa Trip 🏖️</h3><span class="badge-chip">5 members</span>
+        </div>
+        <div class="group-members">
+          <div class="member-chip">👤 You</div>
+          <div class="member-chip">👤 Akash</div>
+          <div class="member-chip">👤 Shreya</div>
+          <div class="member-chip">+2 more</div>
+        </div>
+        <div class="balance-section">
+          <div class="balance-row">
+            <span>Net balance</span>
+            <b class="green">+₹1,240</b>
+          </div>
+        </div>
+        <button class="btn btn-outline btn-full" onclick="viewGroup()">View Details →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== BOTTOM NAV ========== -->
+  <nav class="bottom-nav" id="bottom-nav">
+    <button class="nav-btn active" onclick="navTo('screen-dashboard', this)" id="nav-home">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+      <span>Home</span>
+    </button>
+    <button class="nav-btn" onclick="navTo('screen-analytics', this)">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
+      </svg>
+      <span>Analytics</span>
+    </button>
+    <button class="nav-btn fab-btn" onclick="goTo('screen-add')">
+      <div class="fab-inner">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </div>
+    </button>
+    <button class="nav-btn" onclick="navTo('screen-shared', this)">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+      <span>Shared</span>
+    </button>
+    <button class="nav-btn" onclick="showProfile()">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+      </svg>
+      <span>Profile</span>
+    </button>
+  </nav>
+
+  <!-- ========== TOAST NOTIFICATION ========== -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- ========== COIN ANIMATION OVERLAY ========== -->
+  <div id="coin-overlay" class="coin-overlay hidden">
+    <div class="coin-burst">🪙</div>
+    <p class="coin-text">₹<span id="coin-amount">0</span> spent</p>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,37 @@
+# User and IDE configurations
+.idea/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build and dependencies
+node_modules/
+bin/
+obj/
+/prod/
+/frontend/CentsibleMobile/android/
+/frontend/CentsibleMobile/ios/
+/frontend/CentsibleMobile/.expo/
+/frontend/CentsibleMobile/dist/
+/frontend/CentsibleMobile/web-build/
+
+# Logs and temp files
+*.log
+last_error.txt
+db_update.log
+backend.log
+
+# Environment variables & secrets (CRITICAL: Do not upload credentials to GitHub)
+.env
+.env.production
+.env.local
+.env*.local
+/CentsibleBackend/.env
+/CentsibleBackend/.env.production
+/frontend/CentsibleMobile/.env
+/frontend/CentsibleMobile/.env.production
+appsettings.Local.json
+appsettings.Development.json
+appsettings.Production.json

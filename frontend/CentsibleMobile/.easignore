@@ -1,0 +1,22 @@
+# Ignore OneDrive sync logs (picked up because project lives in OneDrive folder)
+AppData/
+**/AppData/
+*.odl
+*.aodl
+
+# Node modules
+node_modules/
+
+# Android / iOS build artifacts
+android/
+ios/
+
+# Expo local files
+.expo/
+dist/
+web-build/
+
+# Env files
+.env
+.env.local
+.env*.local
