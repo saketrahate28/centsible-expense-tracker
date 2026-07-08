@@ -5,6 +5,9 @@ import { getLocalTransactions, getUnsyncedCount } from './databaseService';
 import { flushSyncQueue } from './syncQueueService';
 
 function getBaseUrl() {
+    if (process.env.EXPO_PUBLIC_API_URL) {
+        return process.env.EXPO_PUBLIC_API_URL;
+    }
     if (__DEV__) {
         const hostUri = Constants.expoConfig?.hostUri;
         const devIp = hostUri ? hostUri.split(':')[0] : '10.0.2.2';
@@ -250,4 +253,15 @@ export const saveSmsTransaction = async (amount: string, note: string, paymentMe
     }
 };
 
+export const updateTransactionCategory = async (transactionId: string, categoryId: number) => {
+    try {
+        const response = await api.patch(`/Transactions/${transactionId}/category`, { categoryId });
+        return response.data;
+    } catch (error) {
+        console.error('Failed to update category:', error);
+        throw error;
+    }
+};
+
 export default api;
+

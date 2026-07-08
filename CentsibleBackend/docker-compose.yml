@@ -29,8 +29,6 @@ services:
       - "5272:8080"
     env_file:
       - .env
-    environment:
-      ASPNETCORE_ENVIRONMENT: Production
     depends_on:
       centsible-db:
         condition: service_healthy
