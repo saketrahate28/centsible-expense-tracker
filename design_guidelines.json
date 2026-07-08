@@ -1,0 +1,160 @@
+{
+  "theme_strategy": {
+    "theme_mode": "dark",
+    "rationale": "Indian GenZ demographic associates dark mode with premium, elite, and modern experiences (similar to CRED, FamPay). High contrast neon accents provide the requested 'playful' and 'finance-focused' feel without being 'corporate-boring'."
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Outfit",
+      "weights": ["600", "700", "800"],
+      "usage": "Use for all screen titles, large numbers (balance, expenses), and prominent UI headers. Must use tracking-tighter for a modern look.",
+      "scales": {
+        "h1": "text-4xl sm:text-5xl tracking-tighter font-bold",
+        "h2": "text-2xl sm:text-3xl tracking-tight font-bold",
+        "h3": "text-xl sm:text-2xl tracking-tight font-semibold",
+        "balance": "text-5xl sm:text-6xl tracking-tighter font-extrabold"
+      }
+    },
+    "body": {
+      "font_family": "Manrope",
+      "weights": ["400", "500", "600"],
+      "usage": "Use for transaction lists, subtitles, AI chat text, and forms.",
+      "scales": {
+        "large": "text-lg font-medium",
+        "base": "text-base font-normal",
+        "small": "text-sm text-[#94A3B8]",
+        "tiny_label": "text-xs uppercase tracking-[0.15em] font-bold text-[#94A3B8]"
+      }
+    }
+  },
+  "colors": {
+    "background": {
+      "default": "#0A0B10",
+      "surface": "#171923",
+      "surface_elevated": "#2D3748",
+      "glass": "rgba(23, 25, 35, 0.7)"
+    },
+    "brand": {
+      "primary": "#EC4899",
+      "primary_glow": "rgba(236, 72, 153, 0.2)",
+      "ai_accent": "#8B5CF6",
+      "ai_gradient": "bg-gradient-to-r from-[#8B5CF6] to-[#EC4899]"
+    },
+    "semantic": {
+      "success": "#10B981",
+      "danger": "#F43F5E",
+      "warning": "#FBBF24",
+      "info": "#3B82F6"
+    },
+    "text": {
+      "primary": "#F8FAFC",
+      "secondary": "#94A3B8",
+      "disabled": "#475569",
+      "inverse": "#0A0B10"
+    },
+    "borders": {
+      "subtle": "rgba(255, 255, 255, 0.05)",
+      "strong": "rgba(255, 255, 255, 0.15)"
+    }
+  },
+  "visual_enhancers": {
+    "border_radius": {
+      "small": "rounded-lg",
+      "medium": "rounded-2xl",
+      "large": "rounded-3xl",
+      "pill": "rounded-full"
+    },
+    "shadows": {
+      "glow_primary": "0 0 20px rgba(236, 72, 153, 0.3)",
+      "glow_ai": "0 0 24px rgba(139, 92, 246, 0.4)",
+      "ambient": "0 8px 32px rgba(0, 0, 0, 0.4)"
+    },
+    "glassmorphism": "backdrop-blur-xl bg-[#171923]/70 border border-white/5",
+    "textures": "Subtle noise overlay (opacity 2-3%) on the main background to break the digital flatness."
+  },
+  "icons": {
+    "library": "lucide-react-native (for Expo) or lucide-react (for Web)",
+    "style": "Stroke width 2.5 for better visibility and playful boldness. Use rounded edges.",
+    "specific_usage": {
+      "ai": "Sparkles or Bot",
+      "add_expense": "Plus (large, inside primary pill)",
+      "analytics": "BarChart3 or PieChart"
+    }
+  },
+  "layouts": {
+    "general": {
+      "screen_padding": "px-6 py-8",
+      "content_gap": "gap-6",
+      "safe_area": "Ensure SafeAreaView is used to prevent notch collisions."
+    },
+    "dashboard": {
+      "structure": "Vertical stack on mobile. Web uses a Bento grid (md:grid-cols-12).",
+      "cards": "Monthly spending as hero card (col-span-12). AI insight card below (col-span-12 md:col-span-6)."
+    },
+    "bottom_nav": {
+      "style": "Floating glassmorphism pill. Positioned absolute at bottom, left 6, right 6. Contains 4-5 evenly spaced icons. Active icon has a primary color dot or background glow."
+    },
+    "analytics_heatmap": {
+      "style": "GitHub-style contribution graph but for expenses. Colors range from empty (surface-elevated) to intense danger (#F43F5E) for high spend days."
+    }
+  },
+  "components": {
+    "cards": {
+      "style": "bg-[#171923] rounded-3xl p-5 border border-white/5",
+      "interaction": "Active opacity on press (0.8)."
+    },
+    "buttons": {
+      "primary": "bg-[#EC4899] text-white rounded-full py-4 px-6 font-semibold flex items-center justify-center shadow-[0_0_20px_rgba(236,72,153,0.3)]",
+      "secondary": "bg-[#2D3748] text-white rounded-full py-4 px-6 font-semibold flex items-center justify-center",
+      "outline": "border-2 border-white/10 text-white rounded-full py-4 px-6 font-semibold flex items-center justify-center"
+    },
+    "inputs": {
+      "style": "bg-[#0A0B10] border border-white/10 rounded-2xl p-4 text-white font-medium focus:border-[#EC4899]",
+      "numpad": "Grid of large touchable text components for quick expense entry. No standard OS keyboard for numbers."
+    },
+    "tags_chips": {
+      "style": "bg-[#2D3748] rounded-full px-4 py-2 flex-row items-center gap-2",
+      "active": "bg-[#EC4899]/20 border border-[#EC4899] text-[#EC4899]"
+    },
+    "ai_chat_bubble": {
+      "user": "bg-[#2D3748] text-white rounded-2xl rounded-tr-sm p-4 self-end",
+      "bot": "bg-gradient-to-r from-[#8B5CF6]/10 to-[#EC4899]/10 border border-[#8B5CF6]/30 text-white rounded-2xl rounded-tl-sm p-4 self-start"
+    }
+  },
+  "motion": {
+    "transitions": "Use react-native-reanimated for fluid, spring-based animations. Avoid linear easings.",
+    "interactions": "Buttons scale down to 0.95 on press. Cards slightly translate up on web hover.",
+    "page_load": "Staggered fade-in and slide-up for list items (transactions)."
+  },
+  "media": {
+    "image_urls": {
+      "landing_hero": {
+        "url": "https://images.pexels.com/photos/7947959/pexels-photo-7947959.jpeg",
+        "description": "Person holding smartphone with financial analytics, used for web landing page hero section."
+      },
+      "ai_background": {
+        "url": "https://images.pexels.com/photos/29579755/pexels-photo-29579755.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Colorful abstract 3D shapes. Use as a heavily blurred background overlay (opacity 10-15%) for the AI Chatbot screen."
+      },
+      "avatars": {
+        "url": "https://images.unsplash.com/photo-1772242859584-f455e5fd45db",
+        "description": "Young person smiling. Use for 'Shared Budgets' member avatars (crop to circle)."
+      }
+    }
+  },
+  "accessibility": {
+    "contrast": "Ensure all text meets minimum 4.5:1 contrast against #171923 and #0A0B10.",
+    "touch_targets": "Minimum 44x44px for all interactive elements (chips, icons, buttons).",
+    "testing": "All interactive elements MUST have a data-testid attribute in kebab-case."
+  },
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "NEVER use generic centered layouts or simplistic flat gradients. Create depth using borders, shadows, and glassmorphism.",
+    "ALWAYS use the defined color tokens. Do not invent new shades of gray or primary colors.",
+    "For Expo (React Native), use NativeWind or standard StyleSheet mapping the Tailwind tokens.",
+    "DO NOT apply global transitions like 'transition: all' in web CSS.",
+    "Ensure 'data-testid' is present on every button, list item, and form input.",
+    "Do not use transparent backgrounds for headers/dropdowns over content. Use glassmorphism.",
+    "Avoid using purely decorative emojis. Use Lucide icons instead."
+  ],
+  "instructions_to_main_agent": "Implement a high-fidelity, GenZ-focused mobile experience. The Dashboard must feel like a command center (dark, glowing accents, clear hierarchy). The Add Expense flow must be hyper-fast (custom numpad, large category chips). The AI chatbot should feel distinct with a subtle purple/pink glow. Ensure the web preview matches the mobile layout elegantly, centering a phone-sized container or using a responsive Bento grid."
+}
