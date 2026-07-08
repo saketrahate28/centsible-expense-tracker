@@ -62,13 +62,27 @@ An AI-powered personal expense tracker for Indian GenZ that teaches finance whil
 - CSV export + sign out.
 
 ## Non-goals (v1)
-- Real Twilio/SendGrid OTP delivery (dev OTP only).
-- Push notifications (requires build; documented for post-launch).
-- Native SMS parsing on-device (documented; ready to re-enable via `react-native-get-sms-android` in a build).
-- Biometric lock (toggle exists; requires build).
+- **SMS auto-sync on mobile**: requires a signed APK build + `react-native-get-sms-android` + Play Console permission declaration. Not available in Expo Go or web preview.
+- **Real Stripe checkout**: needs the user to set a real `sk_test_...` (or live `sk_live_...`) key in `.env`. Placeholder `sk_test_emergent` is provided but not a real Stripe key — Mock Activate is available for testing UX end-to-end.
+- **Real email OTP delivery**: SendGrid code is wired but dormant until `SENDGRID_API_KEY` + verified `SENDER_EMAIL` are added to `.env`. Until then, dev-OTP is returned in the login response and auto-fills.
+- **Push notifications** (budget-exceeded): requires a real device build + `google-services.json`.
+- **Biometric lock** toggle exists in Profile (visual only until a native build is made).
 
 ## Design system
-Defined in `/app/design_guidelines.json`. Neo-brutalist dark, primary neon pink `#EC4899`, AI accent purple `#8B5CF6`, Manrope/Outfit typography.
+- **Primary color**: electric cyan `#06B6D4` (crypto/trading terminal vibe)
+- **Premium accent**: amber gold `#FBBF24` (Cent Pro, upgrades, wealth cues)
+- **AI accent**: purple `#8B5CF6` (unchanged)
+- **Background**: `#0A0B10` dark base with `#171923` surface
+- Landing page hero: 3D rotating Indian Rupee coin (SVG + Animated) with metallic gold gradient and cyan/gold glow.
+
+Full spec at `/app/design_guidelines.json`.
+
+## Cent Pro (Stripe subscription)
+- Monthly: **₹99/mo** (`price_data` inline, no pre-created price IDs required).
+- Yearly: **₹899/yr** (Save 24%, marked BEST VALUE).
+- Flow: `/Billing/checkout` creates a Stripe Checkout Session → user redirected → returns with `session_id` → `/Billing/status` verifies + flips `is_pro=true` on the user.
+- Dev/test: `/Billing/mock-activate` (guarded by `sk_test` prefix) lets us verify Pro UI without a live Stripe key.
+- Pro perks (UI-gated in follow-ups): unlimited AI chats, PDF+CSV export, advanced analytics, custom categories.
 
 ## API Contract
 All endpoints under `/api`, PascalCase paths mirror the original .NET routes (`/Auth/login`, `/Transactions/dashboard`, `/Groups`, etc.). JWT `Authorization: Bearer <token>` required on all authed routes.
