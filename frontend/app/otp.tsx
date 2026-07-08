@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     fontSize: 20, fontWeight: "700",
     paddingHorizontal: 0,
   },
-  boxFilled: { borderColor: theme.colors.primary, backgroundColor: "rgba(236, 72, 153, 0.08)" },
+  boxFilled: { borderColor: theme.colors.primary, backgroundColor: "rgba(6, 182, 212, 0.08)" },
   errorText: { color: theme.colors.danger, fontSize: 13, marginTop: 12 },
   resend: { color: theme.colors.textSecondary, fontSize: 14 },
 });

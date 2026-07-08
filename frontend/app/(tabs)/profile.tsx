@@ -66,15 +66,15 @@ export default function ProfileScreen() {
       </Card>
 
       {/* Pro banner */}
-      <TouchableOpacity testID="profile-pro-btn" style={styles.proCard} activeOpacity={0.85}>
+      <TouchableOpacity testID="profile-pro-btn" style={[styles.proCard, user?.is_pro && styles.proCardActive]} activeOpacity={0.85} onPress={() => router.push("/pro")}>
         <View style={styles.proIcon}>
-          <Sparkles color={theme.colors.ai} size={20} />
+          <Sparkles color={user?.is_pro ? theme.colors.gold : theme.colors.ai} size={20} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.proTitle}>Upgrade to Cent Pro</Text>
-          <Text style={styles.proSub}>Unlimited AI chats · Investment picks · Advanced analytics</Text>
+          <Text style={styles.proTitle}>{user?.is_pro ? "Cent Pro · Active" : "Upgrade to Cent Pro"}</Text>
+          <Text style={styles.proSub}>{user?.is_pro ? `${user?.pro_plan || "subscribed"} plan` : "Unlimited AI · PDF export · Advanced analytics"}</Text>
         </View>
-        <ChevronRight color={theme.colors.ai} size={20} />
+        <ChevronRight color={user?.is_pro ? theme.colors.gold : theme.colors.ai} size={20} />
       </TouchableOpacity>
 
       {/* Actions */}
@@ -153,6 +153,7 @@ const styles = StyleSheet.create({
   userMeta: { color: theme.colors.textDisabled, fontSize: 11, marginTop: 2 },
 
   proCard: { flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: theme.radius.lg, backgroundColor: "rgba(139,92,246,0.08)", borderWidth: 1, borderColor: "rgba(139,92,246,0.25)" },
+  proCardActive: { backgroundColor: theme.colors.goldSoft, borderColor: theme.colors.goldBorder },
   proIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(139,92,246,0.15)", alignItems: "center", justifyContent: "center" },
   proTitle: { color: theme.colors.text, fontSize: 15, fontWeight: "700" },
   proSub: { color: theme.colors.textSecondary, fontSize: 12, marginTop: 2 },

@@ -1,4 +1,4 @@
-// Centsible design tokens — dark, GenZ, high-contrast neon.
+// Centsible design tokens — dark, GenZ, electric cyan + wealth gold.
 export const theme = {
   colors: {
     bg: "#0A0B10",
@@ -6,10 +6,23 @@ export const theme = {
     surfaceElevated: "#2D3748",
     glass: "rgba(23, 25, 35, 0.7)",
 
-    primary: "#EC4899",
-    primaryGlow: "rgba(236, 72, 153, 0.25)",
+    // Primary: electric cyan — trading terminal / crypto-native feel
+    primary: "#06B6D4",
+    primaryGlow: "rgba(6, 182, 212, 0.28)",
+    primarySoft: "rgba(6, 182, 212, 0.12)",
+    primaryBorder: "rgba(6, 182, 212, 0.35)",
+
+    // AI accent — subtle purple, unchanged (works with cyan)
     ai: "#8B5CF6",
-    aiGlow: "rgba(139, 92, 246, 0.25)",
+    aiGlow: "rgba(139, 92, 246, 0.28)",
+    aiSoft: "rgba(139, 92, 246, 0.10)",
+    aiBorder: "rgba(139, 92, 246, 0.30)",
+
+    // Premium / Pro / Wealth — amber gold
+    gold: "#FBBF24",
+    goldSoft: "rgba(251, 191, 36, 0.12)",
+    goldBorder: "rgba(251, 191, 36, 0.35)",
+    goldDeep: "#B45309",
 
     success: "#10B981",
     danger: "#F43F5E",
@@ -27,7 +40,6 @@ export const theme = {
   radius: { sm: 8, md: 16, lg: 24, xl: 32, pill: 999 },
   space: { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 },
   font: {
-    // Use system defaults — reliable in Expo Go without custom font loading.
     heading: undefined as string | undefined,
     body: undefined as string | undefined,
   },

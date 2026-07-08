@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   dividerText: { color: theme.colors.textDisabled, fontSize: 12, fontWeight: "600" },
   tabs: { flexDirection: "row", backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, padding: 4, borderWidth: 1, borderColor: theme.colors.borderSubtle },
   tab: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 12, borderRadius: theme.radius.sm },
-  tabActive: { backgroundColor: "rgba(236, 72, 153, 0.1)" },
+  tabActive: { backgroundColor: "rgba(6, 182, 212, 0.1)" },
   tabText: { color: theme.colors.textSecondary, fontWeight: "600", fontSize: 14 },
   tabTextActive: { color: theme.colors.primary },
   inputWrap: { marginTop: 12 },

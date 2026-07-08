@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderWidth: 1, borderColor: theme.colors.borderSubtle,
   },
-  bankOptActive: { borderColor: theme.colors.primary, backgroundColor: "rgba(236,72,153,0.1)" },
+  bankOptActive: { borderColor: theme.colors.primary, backgroundColor: "rgba(6,182,212,0.1)" },
   bankOptText: { color: theme.colors.text, fontSize: 18, fontWeight: "700" },
   bankOptTextActive: { color: theme.colors.primary },
   errorText: { color: theme.colors.danger, fontSize: 13, marginTop: 12 },

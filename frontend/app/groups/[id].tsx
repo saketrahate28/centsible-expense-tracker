@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   totalSub: { color: theme.colors.textDisabled, fontSize: 12, marginTop: 4 },
   sectionTitle: { color: theme.colors.text, fontSize: 15, fontWeight: "700", marginBottom: 8 },
   memberRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, padding: 12, marginBottom: 6, borderWidth: 1, borderColor: theme.colors.borderSubtle },
-  memberIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: "rgba(236,72,153,0.15)", alignItems: "center", justifyContent: "center" },
+  memberIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: "rgba(6,182,212,0.15)", alignItems: "center", justifyContent: "center" },
   memberName: { color: theme.colors.text, fontSize: 14, fontWeight: "600", flex: 1 },
   memberBal: { fontSize: 13, fontWeight: "700" },
   expenseRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, padding: 12, marginBottom: 6, borderWidth: 1, borderColor: theme.colors.borderSubtle },

@@ -105,7 +105,7 @@ export default function Dashboard() {
         {/* Hero spending card */}
         <View style={styles.heroCard} testID="dashboard-hero-card">
           <LinearGradient
-            colors={["rgba(236,72,153,0.15)", "rgba(139,92,246,0.05)"]}
+            colors={["rgba(6,182,212,0.15)", "rgba(139,92,246,0.05)"]}
             style={StyleSheet.absoluteFill}
           />
           <Text style={styles.heroLabel}>MONTHLY SPEND</Text>
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
   sheetTitle: { color: theme.colors.text, fontSize: 18, fontWeight: "700", marginBottom: 8 },
   sheetSub: { color: theme.colors.textSecondary, fontSize: 13, marginBottom: 12 },
   sheetRow: { paddingVertical: 12, paddingHorizontal: 14, borderRadius: theme.radius.md, marginTop: 4 },
-  sheetRowActive: { backgroundColor: "rgba(236,72,153,0.1)" },
+  sheetRowActive: { backgroundColor: "rgba(6,182,212,0.1)" },
   sheetRowText: { color: theme.colors.text, fontSize: 14, fontWeight: "600" },
   sheetRowSub: { color: theme.colors.textSecondary, fontSize: 11, marginTop: 2 },
   sheetPrimary: { backgroundColor: theme.colors.primary, borderRadius: 999, paddingVertical: 14, alignItems: "center" },
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
 
   catGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
   catOpt: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10, paddingHorizontal: 14, borderRadius: theme.radius.pill, backgroundColor: theme.colors.bg, borderWidth: 1, borderColor: theme.colors.borderSubtle },
-  catOptActive: { borderColor: theme.colors.primary, backgroundColor: "rgba(236,72,153,0.1)" },
+  catOptActive: { borderColor: theme.colors.primary, backgroundColor: "rgba(6,182,212,0.1)" },
   catDot: { width: 8, height: 8, borderRadius: 4 },
   catOptText: { color: theme.colors.textSecondary, fontSize: 13, fontWeight: "600" },
 

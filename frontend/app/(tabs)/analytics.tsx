@@ -67,7 +67,7 @@ export default function AnalyticsScreen() {
 
       {/* Stat cards */}
       <View style={styles.statRow}>
-        <View style={[styles.statCard, { borderColor: "rgba(236,72,153,0.3)" }]} testID="stat-total">
+        <View style={[styles.statCard, { borderColor: "rgba(6,182,212,0.3)" }]} testID="stat-total">
           <Text style={styles.statLabel}>TOTAL SPEND</Text>
           <Text style={styles.statValue}>₹{total.toLocaleString("en-IN")}</Text>
           <Text style={styles.statSub}>{LABELS[timeframe]} so far</Text>
@@ -132,7 +132,7 @@ export default function AnalyticsScreen() {
               <Text style={styles.termBlockLabel}>Example</Text>
               <Text style={styles.termBlockText}>{term.example}</Text>
             </View>
-            <View style={[styles.termBlock, { backgroundColor: "rgba(236,72,153,0.08)", borderColor: "rgba(236,72,153,0.25)" }]}>
+            <View style={[styles.termBlock, { backgroundColor: "rgba(6,182,212,0.08)", borderColor: "rgba(6,182,212,0.25)" }]}>
               <Text style={[styles.termBlockLabel, { color: theme.colors.primary }]}>Personal tip</Text>
               <Text style={styles.termBlockText}>{term.tip}</Text>
             </View>
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   title: { color: theme.colors.text, fontSize: 28, fontWeight: "800", marginBottom: 4 },
   toggle: { flexDirection: "row", backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, padding: 4, borderWidth: 1, borderColor: theme.colors.borderSubtle },
   toggleBtn: { flex: 1, paddingVertical: 10, alignItems: "center", borderRadius: theme.radius.sm },
-  toggleBtnActive: { backgroundColor: "rgba(236,72,153,0.12)" },
+  toggleBtnActive: { backgroundColor: "rgba(6,182,212,0.12)" },
   toggleText: { color: theme.colors.textSecondary, fontWeight: "600", fontSize: 13 },
   toggleTextActive: { color: theme.colors.primary },
 

@@ -23,6 +23,9 @@ import httpx
 import io
 import csv
 import json as _json
+import stripe
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
@@ -34,8 +37,14 @@ MONGO_URL = os.environ["MONGO_URL"]
 DB_NAME = os.environ["DB_NAME"]
 JWT_SECRET = os.environ["JWT_SECRET"]
 EMERGENT_LLM_KEY = os.environ["EMERGENT_LLM_KEY"]
+SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY", "")
+SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "Centsible <noreply@centsible.dev>")
+STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY", "")
+APP_URL = os.environ.get("APP_URL", "http://localhost:3000")
 JWT_ALGO = "HS256"
 JWT_TTL_DAYS = 7
+
+stripe.api_key = STRIPE_API_KEY
 
 # ── App / DB ─────────────────────────────────────────────────────────────────
 client = AsyncIOMotorClient(MONGO_URL)
@@ -210,7 +219,34 @@ def _user_view(user: dict) -> dict:
         "budget_limit": user.get("budget_limit", 25000),
         "is_onboarded": user.get("is_onboarded", False),
         "avatar": user.get("avatar"),
+        "is_pro": bool(user.get("is_pro", False)),
+        "pro_plan": user.get("pro_plan"),
+        "pro_expires_at": iso(user["pro_expires_at"]) if isinstance(user.get("pro_expires_at"), datetime) else user.get("pro_expires_at"),
     }
+
+# ── Email helper ─────────────────────────────────────────────────────────────
+def send_otp_email(to_email: str, otp: str) -> bool:
+    """Send OTP via SendGrid. Returns False if key not configured (dev mode)."""
+    if not SENDGRID_API_KEY or not SENDGRID_API_KEY.startswith("SG."):
+        return False
+    html = f"""
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 24px; background: #0A0B10; color: #F8FAFC; border-radius: 16px;">
+      <h1 style="color: #06B6D4; font-size: 28px; margin: 0 0 8px;">Centsible</h1>
+      <p style="color: #94A3B8; margin: 0 0 32px;">AI-powered finance for GenZ</p>
+      <p style="font-size: 16px; margin: 0 0 8px;">Your verification code is:</p>
+      <div style="font-size: 40px; font-weight: 800; letter-spacing: 8px; color: #06B6D4; background: #171923; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid rgba(6,182,212,0.3); margin: 16px 0;">{otp}</div>
+      <p style="color: #94A3B8; font-size: 13px; margin-top: 20px;">This code expires in 10 minutes. If you didn't request this, safely ignore this email.</p>
+      <p style="color: #475569; font-size: 11px; margin-top: 40px; text-align: center;">© Centsible · Made in India</p>
+    </div>
+    """
+    try:
+        msg = Mail(from_email=SENDER_EMAIL, to_emails=to_email, subject=f"Your Centsible code: {otp}", html_content=html)
+        sg = SendGridAPIClient(SENDGRID_API_KEY)
+        resp = sg.send(msg)
+        return resp.status_code in (200, 202)
+    except Exception as e:
+        log.warning(f"SendGrid failed: {e}")
+        return False
 
 # ── Auth ─────────────────────────────────────────────────────────────────────
 @api.post("/Auth/login")
@@ -227,7 +263,17 @@ async def auth_login(body: LoginRequest):
         upsert=True,
     )
     log.info(f"OTP for {body.identifier}: {otp}")
-    return {"ok": True, "devOTP": otp, "message": "OTP sent"}
+
+    # If it's an email and SendGrid is configured, deliver real email
+    email_sent = False
+    if "@" in body.identifier:
+        email_sent = send_otp_email(body.identifier, otp)
+
+    resp = {"ok": True, "message": "OTP sent" if email_sent else "OTP generated"}
+    # Only expose devOTP when real delivery didn't happen (keeps dev/testing smooth)
+    if not email_sent:
+        resp["devOTP"] = otp
+    return resp
 
 @api.post("/Auth/verify")
 async def auth_verify(body: VerifyRequest):
@@ -784,6 +830,119 @@ async def ai_chat_history(user: dict = Depends(require_user), session_id: Option
             "created_at": iso(m["created_at"]) if isinstance(m.get("created_at"), datetime) else m.get("created_at"),
         })
     return {"items": items}
+
+# ── Stripe / Cent Pro ────────────────────────────────────────────────────────
+PLANS = {
+    "monthly": {"amount": 9900, "currency": "inr", "name": "Cent Pro Monthly", "interval": "month", "days": 30},
+    "yearly":  {"amount": 89900, "currency": "inr", "name": "Cent Pro Yearly", "interval": "year",  "days": 365},
+}
+
+class CheckoutRequest(BaseModel):
+    plan: str  # "monthly" | "yearly"
+    return_url: Optional[str] = None
+
+@api.post("/Billing/checkout")
+async def billing_checkout(body: CheckoutRequest, user: dict = Depends(require_user)):
+    if body.plan not in PLANS:
+        raise HTTPException(400, "Invalid plan")
+    if not STRIPE_API_KEY:
+        raise HTTPException(500, "Stripe not configured")
+
+    p = PLANS[body.plan]
+    base_return = body.return_url or APP_URL
+    # Attach session id placeholder so we can verify on return
+    success_url = f"{base_return}?checkout=success&session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{base_return}?checkout=cancel"
+
+    try:
+        session = stripe.checkout.Session.create(
+            mode="subscription",
+            payment_method_types=["card"],
+            line_items=[{
+                "price_data": {
+                    "currency": p["currency"],
+                    "product_data": {"name": p["name"], "description": "Unlock unlimited AI chats, deep analytics, PDF+CSV export, and premium finance insights."},
+                    "recurring": {"interval": p["interval"]},
+                    "unit_amount": p["amount"],
+                },
+                "quantity": 1,
+            }],
+            customer_email=user.get("email"),
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={"user_id": user["user_id"], "plan": body.plan},
+            subscription_data={"metadata": {"user_id": user["user_id"], "plan": body.plan}},
+        )
+        # Record intent
+        await db.billing_sessions.insert_one({
+            "session_id": session.id,
+            "user_id": user["user_id"],
+            "plan": body.plan,
+            "amount": p["amount"],
+            "status": "pending",
+            "created_at": now_utc(),
+        })
+        return {"url": session.url, "session_id": session.id}
+    except Exception as e:
+        log.error(f"Stripe checkout error: {e}")
+        raise HTTPException(500, f"Checkout failed: {e}")
+
+@api.get("/Billing/status")
+async def billing_status(session_id: str, user: dict = Depends(require_user)):
+    """Called by app after redirect to verify + activate Pro."""
+    if not session_id:
+        raise HTTPException(400, "session_id required")
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+    except Exception as e:
+        raise HTTPException(400, f"Invalid session: {e}")
+
+    if session.metadata.get("user_id") != user["user_id"]:
+        raise HTTPException(403, "Not your session")
+
+    paid = session.payment_status == "paid" or session.status == "complete"
+    plan = session.metadata.get("plan", "monthly")
+    if paid:
+        expires = now_utc() + timedelta(days=PLANS.get(plan, PLANS["monthly"])["days"])
+        await db.users.update_one(
+            {"user_id": user["user_id"]},
+            {"$set": {
+                "is_pro": True,
+                "pro_plan": plan,
+                "pro_expires_at": expires,
+                "stripe_customer_id": session.customer,
+            }},
+        )
+        await db.billing_sessions.update_one(
+            {"session_id": session_id},
+            {"$set": {"status": "paid", "confirmed_at": now_utc()}},
+        )
+        updated = await get_user_by_id(user["user_id"])
+        return {"paid": True, "plan": plan, "user": _user_view(updated)}
+    return {"paid": False}
+
+@api.get("/Billing/plans")
+async def billing_plans():
+    return {"plans": [
+        {"id": "monthly", "name": "Cent Pro Monthly", "amount": 99,  "currency": "INR", "interval": "month", "highlight": "Cancel anytime"},
+        {"id": "yearly",  "name": "Cent Pro Yearly",  "amount": 899, "currency": "INR", "interval": "year",  "highlight": "Save 24% · 2 months free"},
+    ]}
+
+@api.post("/Billing/mock-activate")
+async def billing_mock_activate(body: dict, user: dict = Depends(require_user)):
+    """Dev helper: activate Pro without going through Stripe checkout.
+    Only usable when STRIPE_API_KEY is the emergent test key.
+    """
+    if not STRIPE_API_KEY.startswith("sk_test"):
+        raise HTTPException(403, "Only allowed in test mode")
+    plan = body.get("plan", "monthly")
+    expires = now_utc() + timedelta(days=PLANS.get(plan, PLANS["monthly"])["days"])
+    await db.users.update_one(
+        {"user_id": user["user_id"]},
+        {"$set": {"is_pro": True, "pro_plan": plan, "pro_expires_at": expires}},
+    )
+    updated = await get_user_by_id(user["user_id"])
+    return {"ok": True, "user": _user_view(updated)}
 
 # ── Meta ─────────────────────────────────────────────────────────────────────
 @api.get("/")

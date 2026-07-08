@@ -83,13 +83,13 @@ const styles = StyleSheet.create({
   iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surface, alignItems: "center", justifyContent: "center" },
   title: { color: theme.colors.text, fontSize: 17, fontWeight: "700" },
 
-  emptyIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: "rgba(236,72,153,0.15)", alignItems: "center", justifyContent: "center" },
+  emptyIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: "rgba(6,182,212,0.15)", alignItems: "center", justifyContent: "center" },
   emptyTitle: { color: theme.colors.text, fontSize: 17, fontWeight: "700", marginBottom: 6 },
   emptySub: { color: theme.colors.textSecondary, fontSize: 13, textAlign: "center", lineHeight: 19 },
 
   card: { backgroundColor: theme.colors.surface, borderRadius: theme.radius.lg, padding: 16, borderWidth: 1, borderColor: theme.colors.borderSubtle },
   cardTop: { flexDirection: "row", alignItems: "center", gap: 12 },
-  cardIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(236,72,153,0.15)", alignItems: "center", justifyContent: "center" },
+  cardIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(6,182,212,0.15)", alignItems: "center", justifyContent: "center" },
   cardName: { color: theme.colors.text, fontSize: 15, fontWeight: "700" },
   cardMembers: { color: theme.colors.textSecondary, fontSize: 12, marginTop: 2 },
   cardAmount: { color: theme.colors.text, fontSize: 15, fontWeight: "700" },

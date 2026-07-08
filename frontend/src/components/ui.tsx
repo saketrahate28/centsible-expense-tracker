@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   chipActive: {
-    backgroundColor: "rgba(236, 72, 153, 0.15)",
+    backgroundColor: "rgba(6, 182, 212, 0.15)",
     borderColor: theme.colors.primary,
   },
   chipText: { color: theme.colors.textSecondary, fontSize: 13, fontWeight: "600" },

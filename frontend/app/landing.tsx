@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, Image, ScrollView, Platform } from "react-native";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, t } from "@/src/components/ui";
 import { theme } from "@/src/lib/theme";
 import { Sparkles, TrendingUp, ShieldCheck } from "lucide-react-native";
+import RupeeCoin3D from "@/src/components/RupeeCoin3D";
 
 export default function Landing() {
   const router = useRouter();
@@ -24,16 +25,13 @@ export default function Landing() {
         </View>
       </View>
 
-      <View style={styles.heroImageWrap}>
+      {/* 3D rotating rupee coin */}
+      <View style={styles.coinWrap}>
         <LinearGradient
-          colors={["rgba(139,92,246,0.35)", "rgba(236,72,153,0.35)", "transparent"]}
-          style={styles.heroGlow}
+          colors={["rgba(6,182,212,0.20)", "rgba(251,191,36,0.15)", "transparent"]}
+          style={styles.coinBg}
         />
-        <Image
-          source={{ uri: "https://images.pexels.com/photos/7947959/pexels-photo-7947959.jpeg?auto=compress&cs=tinysrgb&w=800" }}
-          style={styles.heroImage}
-          resizeMode="cover"
-        />
+        <RupeeCoin3D size={200} />
       </View>
 
       <Text style={[t.h1, styles.title]} testID="landing-title">
@@ -77,9 +75,8 @@ const styles = StyleSheet.create({
   badgeRow: { alignItems: "flex-start" },
   badge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: theme.colors.surface, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: theme.colors.borderSubtle },
   badgeText: { color: theme.colors.text, fontSize: 12, fontWeight: "600" },
-  heroImageWrap: { borderRadius: theme.radius.xl, overflow: "hidden", height: 260, marginTop: 12, backgroundColor: theme.colors.surface },
-  heroGlow: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 },
-  heroImage: { width: "100%", height: "100%", opacity: 0.7 },
+  coinWrap: { alignItems: "center", justifyContent: "center", height: 260, marginTop: 8 },
+  coinBg: { position: "absolute", width: "120%", height: "100%", borderRadius: 200 },
   title: { fontSize: 40, lineHeight: 44, marginTop: 20 },
   subtitle: { color: theme.colors.textSecondary, fontSize: 15, lineHeight: 22 },
   features: { gap: 12, marginTop: 8 },
