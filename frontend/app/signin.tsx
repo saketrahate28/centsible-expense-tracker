@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, StyleSheet, TextInput, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, Linking } from "react-native";
+import { View, Text, StyleSheet, TextInput, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
@@ -10,26 +10,30 @@ import { theme } from "@/src/lib/theme";
 import { api } from "@/src/lib/api";
 import { useAuth } from "@/src/context/AuthContext";
 import { Mail, Phone, ArrowLeft } from "lucide-react-native";
+import { CountryPicker, DEFAULT_COUNTRY, Country } from "@/src/components/CountryPicker";
 
 export default function SignIn() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { signInWithGoogleSession } = useAuth();
   const [mode, setMode] = useState<"email" | "phone">("email");
-  const [identifier, setIdentifier] = useState("");
+  const [email, setEmail] = useState("");
+  const [phoneLocal, setPhoneLocal] = useState("");
+  const [country, setCountry] = useState<Country>(DEFAULT_COUNTRY);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const identifier = mode === "email" ? email : `${country.dial}${phoneLocal}`;
   const canSubmit = mode === "email"
-    ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier)
-    : /^\+?\d{10,13}$/.test(identifier);
+    ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    : /^\d{6,13}$/.test(phoneLocal);
 
   const handleSubmit = async () => {
     setError(null);
     setLoading(true);
     try {
       const res = await api.requestOtp(identifier);
-      router.push({ pathname: "/otp", params: { identifier, devOtp: res.devOTP } });
+      router.push({ pathname: "/otp", params: { identifier, devOtp: res.devOTP || "" } });
     } catch (e: any) {
       setError(e.message || "Something went wrong");
     } finally {
@@ -107,7 +111,7 @@ export default function SignIn() {
           <TouchableOpacity
             testID="signin-email-tab"
             style={[styles.tab, mode === "email" && styles.tabActive]}
-            onPress={() => { setMode("email"); setIdentifier(""); }}
+            onPress={() => setMode("email")}
           >
             <Mail color={mode === "email" ? theme.colors.primary : theme.colors.textSecondary} size={16} />
             <Text style={[styles.tabText, mode === "email" && styles.tabTextActive]}>Email</Text>
@@ -115,26 +119,42 @@ export default function SignIn() {
           <TouchableOpacity
             testID="signin-phone-tab"
             style={[styles.tab, mode === "phone" && styles.tabActive]}
-            onPress={() => { setMode("phone"); setIdentifier(""); }}
+            onPress={() => setMode("phone")}
           >
             <Phone color={mode === "phone" ? theme.colors.primary : theme.colors.textSecondary} size={16} />
             <Text style={[styles.tabText, mode === "phone" && styles.tabTextActive]}>Phone</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.inputWrap}>
-          <TextInput
-            testID="signin-identifier-input"
-            style={styles.input}
-            placeholder={mode === "email" ? "you@example.com" : "+91 98765 43210"}
-            placeholderTextColor={theme.colors.textDisabled}
-            value={identifier}
-            onChangeText={setIdentifier}
-            keyboardType={mode === "email" ? "email-address" : "phone-pad"}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-        </View>
+        {mode === "email" ? (
+          <View style={styles.inputWrap}>
+            <TextInput
+              testID="signin-email-input"
+              style={styles.input}
+              placeholder="you@example.com"
+              placeholderTextColor={theme.colors.textDisabled}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+        ) : (
+          <View style={[styles.inputWrap, styles.phoneRow]}>
+            <CountryPicker value={country} onChange={setCountry} testID="signin-country-picker" />
+            <TextInput
+              testID="signin-phone-input"
+              style={styles.phoneInput}
+              placeholder="98765 43210"
+              placeholderTextColor={theme.colors.textDisabled}
+              value={phoneLocal}
+              onChangeText={(v) => setPhoneLocal(v.replace(/\D/g, "").slice(0, 13))}
+              keyboardType="phone-pad"
+              autoCorrect={false}
+            />
+          </View>
+        )}
 
         {error ? <Text testID="signin-error" style={styles.errorText}>{error}</Text> : null}
 
@@ -165,15 +185,26 @@ const styles = StyleSheet.create({
   dividerText: { color: theme.colors.textDisabled, fontSize: 12, fontWeight: "600" },
   tabs: { flexDirection: "row", backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, padding: 4, borderWidth: 1, borderColor: theme.colors.borderSubtle },
   tab: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 12, borderRadius: theme.radius.sm },
-  tabActive: { backgroundColor: "rgba(6, 182, 212, 0.1)" },
+  tabActive: { backgroundColor: theme.colors.primarySoft },
   tabText: { color: theme.colors.textSecondary, fontWeight: "600", fontSize: 14 },
   tabTextActive: { color: theme.colors.primary },
   inputWrap: { marginTop: 12 },
+  phoneRow: { flexDirection: "row", alignItems: "stretch" },
   input: {
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.borderSubtle,
     borderRadius: theme.radius.md,
+    paddingHorizontal: 16, paddingVertical: 16,
+    color: theme.colors.text, fontSize: 16, fontWeight: "500",
+  },
+  phoneInput: {
+    flex: 1,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.borderSubtle,
+    borderTopRightRadius: theme.radius.md,
+    borderBottomRightRadius: theme.radius.md,
     paddingHorizontal: 16, paddingVertical: 16,
     color: theme.colors.text, fontSize: 16, fontWeight: "500",
   },

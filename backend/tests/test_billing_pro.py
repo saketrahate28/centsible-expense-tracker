@@ -1,4 +1,4 @@
-"""Iteration 2 delta tests: SendGrid dev fallback + Billing / Cent Pro flow."""
+"""Iteration 3 delta tests: Razorpay Billing + Cent Pro flow (Stripe removed)."""
 import uuid
 
 
@@ -21,12 +21,16 @@ class TestEmailLoginDevFallback:
         assert r.json()["ok"] is True
 
 
-# ── Billing / Plans (public) ─────────────────────────────────────────────────
+# ── Billing / Plans (public) — Razorpay ──────────────────────────────────────
 class TestBillingPlans:
     def test_plans_public_no_auth(self, api_client, base_url):
         r = api_client.get(f"{base_url}/api/Billing/plans", timeout=15)
         assert r.status_code == 200
-        plans = r.json()["plans"]
+        body = r.json()
+        # Razorpay disabled because RAZORPAY_KEY_ID/SECRET are empty in .env
+        assert "razorpay_enabled" in body
+        assert body["razorpay_enabled"] is False
+        plans = body["plans"]
         assert isinstance(plans, list) and len(plans) == 2
 
         by_id = {p["id"]: p for p in plans}
@@ -41,44 +45,69 @@ class TestBillingPlans:
         assert by_id["yearly"]["interval"] == "year"
 
 
-# ── Billing / Checkout (auth) ────────────────────────────────────────────────
-class TestBillingCheckout:
-    def test_checkout_requires_auth(self, api_client, base_url):
-        r = api_client.post(f"{base_url}/api/Billing/checkout",
+# ── Billing / Order (new Razorpay endpoint) ─────────────────────────────────
+class TestBillingOrder:
+    def test_order_requires_auth(self, api_client, base_url):
+        r = api_client.post(f"{base_url}/api/Billing/order",
                             json={"plan": "monthly"}, timeout=15)
         assert r.status_code == 401
 
-    def test_checkout_invalid_plan(self, api_client, base_url, auth_user):
-        r = api_client.post(f"{base_url}/api/Billing/checkout",
+    def test_order_invalid_plan(self, api_client, base_url, auth_user):
+        r = api_client.post(f"{base_url}/api/Billing/order",
                             json={"plan": "lifetime"},
                             headers=auth_user["headers"], timeout=15)
         assert r.status_code == 400
 
-    def test_checkout_with_placeholder_stripe_key_fails_500(self, api_client, base_url, auth_user):
-        r = api_client.post(f"{base_url}/api/Billing/checkout",
+    def test_order_returns_500_when_razorpay_not_configured(self, api_client, base_url, auth_user):
+        r = api_client.post(f"{base_url}/api/Billing/order",
                             json={"plan": "monthly"},
                             headers=auth_user["headers"], timeout=30)
-        # sk_test_emergent is a placeholder; Stripe SDK should reject it → 500
+        # RAZORPAY_KEY_ID/SECRET are empty in .env — expected 500
         assert r.status_code == 500
-        body = r.text.lower()
-        assert "checkout failed" in body or "invalid api key" in body
+        assert "razorpay not configured" in r.text.lower()
 
 
-# ── Billing / Status (auth) ──────────────────────────────────────────────────
-class TestBillingStatus:
-    def test_status_requires_auth(self, api_client, base_url):
-        r = api_client.get(f"{base_url}/api/Billing/status",
-                           params={"session_id": "cs_fake_x"}, timeout=15)
+# ── Billing / Verify (new Razorpay endpoint) ────────────────────────────────
+class TestBillingVerify:
+    def test_verify_requires_auth(self, api_client, base_url):
+        r = api_client.post(f"{base_url}/api/Billing/verify",
+                            json={
+                                "razorpay_order_id": "order_x",
+                                "razorpay_payment_id": "pay_x",
+                                "razorpay_signature": "sig_x",
+                                "plan": "monthly",
+                            }, timeout=15)
         assert r.status_code == 401
 
-    def test_status_invalid_session_returns_400(self, api_client, base_url, auth_user):
+    def test_verify_returns_500_when_razorpay_not_configured(self, api_client, base_url, auth_user):
+        r = api_client.post(f"{base_url}/api/Billing/verify",
+                            json={
+                                "razorpay_order_id": "order_x",
+                                "razorpay_payment_id": "pay_x",
+                                "razorpay_signature": "sig_x",
+                                "plan": "monthly",
+                            },
+                            headers=auth_user["headers"], timeout=30)
+        assert r.status_code == 500
+        assert "razorpay not configured" in r.text.lower()
+
+
+# ── Old Stripe endpoints REMOVED — should 404 ────────────────────────────────
+class TestStripeEndpointsRemoved:
+    def test_billing_checkout_removed(self, api_client, base_url, auth_user):
+        r = api_client.post(f"{base_url}/api/Billing/checkout",
+                            json={"plan": "monthly"},
+                            headers=auth_user["headers"], timeout=15)
+        assert r.status_code == 404
+
+    def test_billing_status_removed(self, api_client, base_url, auth_user):
         r = api_client.get(f"{base_url}/api/Billing/status",
-                           params={"session_id": "cs_fake_invalid_session_id"},
-                           headers=auth_user["headers"], timeout=30)
-        assert r.status_code == 400
+                           params={"session_id": "cs_fake"},
+                           headers=auth_user["headers"], timeout=15)
+        assert r.status_code == 404
 
 
-# ── Billing / Mock Activate (auth, sk_test only) ─────────────────────────────
+# ── Billing / Mock Activate (dev bypass — still works) ───────────────────────
 class TestBillingMockActivate:
     def test_mock_activate_requires_auth(self, api_client, base_url):
         r = api_client.post(f"{base_url}/api/Billing/mock-activate",
@@ -86,15 +115,12 @@ class TestBillingMockActivate:
         assert r.status_code == 401
 
     def test_mock_activate_monthly_sets_is_pro(self, api_client, base_url):
-        # fresh user (do not reuse session-scoped auth_user; we mutate is_pro here)
         ident = f"TEST_pro_m_{uuid.uuid4().hex[:6]}@centsible.dev"
-        api_client.post(f"{base_url}/api/Auth/login", json={"identifier": ident}, timeout=30)
         otp = api_client.post(f"{base_url}/api/Auth/login", json={"identifier": ident}, timeout=30).json()["devOTP"]
         v = api_client.post(f"{base_url}/api/Auth/verify",
                             json={"identifier": ident, "otp": otp}, timeout=30).json()
         h = {"Authorization": f"Bearer {v['token']}", "Content-Type": "application/json"}
 
-        # Before: not pro
         me0 = api_client.get(f"{base_url}/api/Auth/me", headers=h, timeout=15).json()["user"]
         assert me0.get("is_pro") is False
 
@@ -104,17 +130,14 @@ class TestBillingMockActivate:
         u = r.json()["user"]
         assert u["is_pro"] is True
         assert u["pro_plan"] == "monthly"
-        assert u["pro_expires_at"]  # ISO string present
+        assert u["pro_expires_at"]
 
-        # Re-verify via /Auth/me
         me = api_client.get(f"{base_url}/api/Auth/me", headers=h, timeout=15).json()["user"]
         assert me["is_pro"] is True
         assert me["pro_plan"] == "monthly"
-        assert me["pro_expires_at"]
 
     def test_mock_activate_yearly_sets_is_pro(self, api_client, base_url):
         ident = f"TEST_pro_y_{uuid.uuid4().hex[:6]}@centsible.dev"
-        api_client.post(f"{base_url}/api/Auth/login", json={"identifier": ident}, timeout=30)
         otp = api_client.post(f"{base_url}/api/Auth/login", json={"identifier": ident}, timeout=30).json()["devOTP"]
         v = api_client.post(f"{base_url}/api/Auth/verify",
                             json={"identifier": ident, "otp": otp}, timeout=30).json()

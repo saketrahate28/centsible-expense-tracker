@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 3 delta verification (Stripe→Razorpay swap + silver coin + country picker). Backend: 48/48 pytest pass. Updated /app/backend/tests/test_billing_pro.py — old Stripe TestBillingCheckout/TestBillingStatus classes rewritten to test new /api/Billing/order + /api/Billing/verify (both correctly return 500 'Razorpay not configured' when RAZORPAY_KEY_ID/SECRET are empty). Added TestStripeEndpointsRemoved confirming /api/Billing/checkout and /api/Billing/status now 404. /api/Billing/plans returns razorpay_enabled=false + two plans (monthly ₹99 INR, yearly ₹899 INR). /api/Billing/mock-activate still works for both plans, is_pro reflected in /api/Auth/me. All 35 regression tests (auth, users, txns, income, groups, AI insights/term/chat) still green. Frontend (390x844 web preview): landing renders SILVER coin — SVG gradient stops #FFFFFF→#F1F5F9→#94A3B8→#334155→#0F172A confirming silver metallic (no gold). Coin still rotates. /signin phone tab now shows CountryPicker with 🇮🇳 +91 default; opening picker lists 39 countries with searchable input (search 'United' filtered to 3 country rows: US, UK, UAE); selecting US updates trigger to '🇺🇸 +1', selecting IN restores default. Entering 9876543210 → Send OTP called API with identifier=%2B919876543210 (verified via redirected /otp URL). Full E2E: signin(phone,+91) → OTP autofilled from devOtp URL param → Verify → /onboarding → /pro. On /pro: 'Razorpay isn't connected yet…' notice visible under plans, 'Pay ₹899 with Razorpay' button aria-disabled=true with opacity:0.5, 'Skip payment (test mode) — activate yearly Pro' link clickable → status pill '🎉 Welcome to Cent Pro! (test mode)', gold 'You're Pro · Yearly' badge appears, footer CTA becomes 'You're all set — enjoy Pro 🎉'. /profile then displays 'Cent Pro · Active / yearly plan' banner in gold. No React Native red screens; no new deprecated packages.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Bottom tab bar", "issues": ["Tab labels still slightly truncated on 390px (carry-over from iterations 1 & 2 — not re-tested for this iteration but visible in profile screenshot)."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_centsible_api.py",
+    "/app/backend/tests/test_billing_pro.py",
+    "/app/backend/tests/conftest.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(Carry-over from iteration 1) Fix bottom tab bar label truncation on 390px width.",
+    "When RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET are provided later, re-run TestBillingOrder / TestBillingVerify — currently only the 'not configured' 500 branch is exercised. Also lock the /Billing/mock-activate bypass behind an env flag once live keys are in place (mock-activate is currently allowed unconditionally when rzp_client is None)."
+  ],
+  "critical_code_review_comments": [
+    "server.py is now ~991 lines — still above the 700-line guideline. Recommend splitting into routers (auth, billing, txn, ai, groups) before adding more surface area.",
+    "/api/Billing/mock-activate has no gate when Razorpay isn't configured (rzp_client is None → passes straight through). In production with real Razorpay keys the guard `if not RAZORPAY_KEY_ID.startswith('rzp_test')` correctly denies, but consider explicit env-flag gating (e.g. ENABLE_MOCK_BILLING=true) instead of relying on key prefix.",
+    "CountryPicker.tsx: search compares against `c.dial.includes(q)` which returns true for a bare '+' as well as digits — minor UX nit only.",
+    "RupeeCoin3D.tsx uses Animated with useNativeDriver:true — on web this correctly falls back to JS-based animation (warning logged but harmless)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_billing_pro.py (rewrote Stripe TestBillingCheckout/TestBillingStatus → new Razorpay TestBillingOrder/TestBillingVerify/TestStripeEndpointsRemoved; +2 net tests, now 13 total)"
+  ],
+  "success_rate": { "backend": "100% (48/48)", "frontend": "100% of tested flows" },
+  "seed_data_creation": "Ephemeral TEST_<uuid>@centsible.dev and +91987654XXXX phone users; no persistent seed data. Isolated per user_id.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Iteration 3 delta all verified. Stripe endpoints fully removed (both /api/Billing/checkout and /api/Billing/status return 404). New Razorpay endpoints /api/Billing/order and /api/Billing/verify exist but return 500 'Razorpay not configured' until RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET are populated — this is expected. /api/Billing/mock-activate remains the dev bypass and is currently ungated (allowed whenever rzp_client is None). Silver metallic coin lives at /app/frontend/src/components/RupeeCoin3D.tsx (five silver gradient stops #FFFFFF→#0F172A). CountryPicker at /app/frontend/src/components/CountryPicker.tsx has 39 countries, default India, testID 'signin-country-picker' (NOT 'country-picker-btn'). Full E2E authenticated flow works: signin(phone,+91,9876543210) → OTP verify → /onboarding → /pro → 'Skip payment' → /profile shows gold 'Cent Pro · Active / yearly plan' banner. When Razorpay keys arrive, retest TestBillingOrder / TestBillingVerify happy paths."
+}

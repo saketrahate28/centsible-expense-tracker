@@ -28,7 +28,7 @@ export default function Landing() {
       {/* 3D rotating rupee coin */}
       <View style={styles.coinWrap}>
         <LinearGradient
-          colors={["rgba(6,182,212,0.20)", "rgba(251,191,36,0.15)", "transparent"]}
+          colors={["rgba(6,182,212,0.20)", "rgba(148,163,184,0.15)", "transparent"]}
           style={styles.coinBg}
         />
         <RupeeCoin3D size={200} />

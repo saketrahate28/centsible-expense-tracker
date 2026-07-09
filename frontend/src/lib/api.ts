@@ -98,12 +98,12 @@ export const api = {
   // Meta
   categories: () => apiFetch<{ items: string[] }>("/categories"),
   exportUrl: () => `${BASE}/api/Transactions/export`,
-  // Billing / Pro
-  billingPlans: () => apiFetch<{ plans: { id: string; name: string; amount: number; currency: string; interval: string; highlight: string }[] }>("/Billing/plans", { auth: false }),
-  billingCheckout: (plan: "monthly" | "yearly", return_url?: string) =>
-    apiFetch<{ url: string; session_id: string }>("/Billing/checkout", { method: "POST", body: { plan, return_url } }),
-  billingStatus: (session_id: string) =>
-    apiFetch<{ paid: boolean; plan?: string; user?: any }>(`/Billing/status?session_id=${encodeURIComponent(session_id)}`),
+  // Billing / Pro (Razorpay)
+  billingPlans: () => apiFetch<{ razorpay_enabled: boolean; plans: { id: string; name: string; amount: number; currency: string; interval: string; highlight: string }[] }>("/Billing/plans", { auth: false }),
+  billingOrder: (plan: "monthly" | "yearly") =>
+    apiFetch<{ order_id: string; amount: number; currency: string; key_id: string; plan_name: string; user_name?: string; user_email?: string; user_phone?: string }>("/Billing/order", { method: "POST", body: { plan } }),
+  billingVerify: (payload: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string; plan: string }) =>
+    apiFetch<{ paid: boolean; plan: string; user: any }>("/Billing/verify", { method: "POST", body: payload }),
   billingMockActivate: (plan: "monthly" | "yearly") =>
     apiFetch<{ ok: boolean; user: any }>("/Billing/mock-activate", { method: "POST", body: { plan } }),
 };

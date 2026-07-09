@@ -1,16 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, ActivityIndicator } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from "react-native";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import * as WebBrowser from "expo-web-browser";
-import * as Linking from "expo-linking";
 import { ArrowLeft, Sparkles, Check, Crown, Zap, BarChart3, MessageSquare, FileDown, Star } from "lucide-react-native";
 
 import { theme } from "@/src/lib/theme";
 import { api } from "@/src/lib/api";
 import { useAuth } from "@/src/context/AuthContext";
 import { Button } from "@/src/components/ui";
+import { openRazorpayCheckout } from "@/src/lib/razorpay";
 
 type Plan = { id: string; name: string; amount: number; currency: string; interval: string; highlight: string };
 
@@ -27,8 +26,8 @@ export default function CentPro() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, refresh } = useAuth();
-  const params = useLocalSearchParams<{ checkout?: string; session_id?: string }>();
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [rzpEnabled, setRzpEnabled] = useState(false);
   const [selected, setSelected] = useState<"monthly" | "yearly">("yearly");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -37,54 +36,39 @@ export default function CentPro() {
     try {
       const r = await api.billingPlans();
       setPlans(r.plans);
+      setRzpEnabled(r.razorpay_enabled);
     } catch {}
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  // Handle redirect back from Stripe
-  useEffect(() => {
-    if (params.checkout === "success" && params.session_id) {
-      (async () => {
-        setBusy(true);
-        try {
-          const r = await api.billingStatus(String(params.session_id));
-          if (r.paid) {
-            setStatus("🎉 Welcome to Cent Pro!");
-            await refresh();
-          } else {
-            setStatus("Payment not confirmed yet — try again if this persists.");
-          }
-        } catch (e: any) {
-          setStatus(e.message || "Couldn't verify payment");
-        } finally { setBusy(false); }
-      })();
-    } else if (params.checkout === "cancel") {
-      setStatus("Checkout cancelled.");
-    }
-  }, [params, refresh]);
-
   const handleSubscribe = async () => {
+    if (!rzpEnabled) {
+      setStatus("Razorpay not configured yet — use the test button below for now.");
+      return;
+    }
     setBusy(true); setStatus(null);
     try {
-      const returnUrl = Platform.OS === "web"
-        ? (typeof window !== "undefined" ? window.location.origin + "/pro" : "")
-        : Linking.createURL("pro");
-      const r = await api.billingCheckout(selected, returnUrl);
-      if (Platform.OS === "web") {
-        window.location.href = r.url;
+      const order = await api.billingOrder(selected);
+      const result = await openRazorpayCheckout(order);
+      if (!result.ok) {
+        if (result.reason === "dismissed") setStatus("Checkout cancelled.");
+        else setStatus(result.message || "Payment failed. Try again.");
         return;
       }
-      const result = await WebBrowser.openAuthSessionAsync(r.url, returnUrl);
-      if (result.type === "success" && result.url) {
-        const url = new URL(result.url);
-        const sid = url.searchParams.get("session_id");
-        if (sid) {
-          const st = await api.billingStatus(sid);
-          if (st.paid) { setStatus("🎉 Welcome to Cent Pro!"); await refresh(); }
-        }
+      const verified = await api.billingVerify({
+        razorpay_order_id: result.razorpay_order_id,
+        razorpay_payment_id: result.razorpay_payment_id,
+        razorpay_signature: result.razorpay_signature,
+        plan: selected,
+      });
+      if (verified.paid) {
+        setStatus("🎉 Welcome to Cent Pro!");
+        await refresh();
+      } else {
+        setStatus("Payment verification failed.");
       }
     } catch (e: any) {
-      setStatus(e.message || "Couldn't start checkout");
+      setStatus(e.message || "Something went wrong");
     } finally { setBusy(false); }
   };
 
@@ -100,10 +84,10 @@ export default function CentPro() {
   };
 
   const isPro = user?.is_pro;
+  const activeAmount = plans.find(p => p.id === selected)?.amount || 99;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.bg }}>
-      {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity testID="pro-back-btn" onPress={() => router.back()} style={styles.back}>
           <ArrowLeft color={theme.colors.text} size={22} />
@@ -112,8 +96,7 @@ export default function CentPro() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 100, gap: 16 }}>
-        {/* Hero */}
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 200, gap: 16 }}>
         <View style={styles.hero}>
           <LinearGradient
             colors={["rgba(251,191,36,0.20)", "rgba(6,182,212,0.12)", "transparent"]}
@@ -132,7 +115,6 @@ export default function CentPro() {
           )}
         </View>
 
-        {/* Features */}
         <View style={styles.features}>
           {FEATURES.map((f, i) => (
             <View key={i} style={styles.featureRow} testID={`pro-feature-${i}`}>
@@ -145,7 +127,6 @@ export default function CentPro() {
           ))}
         </View>
 
-        {/* Plans */}
         {!isPro && (
           <View style={styles.plans}>
             {plans.map(p => (
@@ -179,19 +160,24 @@ export default function CentPro() {
                 </View>
               </TouchableOpacity>
             ))}
+            {!rzpEnabled && (
+              <Text style={styles.notice} testID="pro-rzp-notice">
+                💡 Razorpay isn&apos;t connected yet. Add RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET in backend .env to enable real payments. For now, use the test button.
+              </Text>
+            )}
           </View>
         )}
 
         {status ? <Text style={styles.status} testID="pro-status">{status}</Text> : null}
       </ScrollView>
 
-      {/* CTA */}
       {!isPro && (
         <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
           <Button
-            label={busy ? "Please wait..." : `Upgrade for ₹${plans.find(p => p.id === selected)?.amount || 99}`}
+            label={busy ? "Please wait..." : `Pay ₹${activeAmount} with Razorpay`}
             onPress={handleSubscribe}
             loading={busy}
+            disabled={!rzpEnabled || busy}
             testID="pro-subscribe-btn"
             variant="primary"
             icon={<Crown color="#fff" size={18} />}
@@ -201,7 +187,7 @@ export default function CentPro() {
               Skip payment (test mode) — activate {selected} Pro
             </Text>
           </TouchableOpacity>
-          <Text style={styles.terms}>Cancel anytime. Payment secured by Stripe.</Text>
+          <Text style={styles.terms}>{rzpEnabled ? "Cancel anytime. Payment secured by Razorpay." : "Add Razorpay keys to enable UPI, cards & wallets."}</Text>
         </View>
       )}
       {isPro && (
@@ -246,6 +232,7 @@ const styles = StyleSheet.create({
   radioSelected: { borderColor: theme.colors.primary },
   radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.colors.primary },
 
+  notice: { color: theme.colors.textSecondary, fontSize: 12, textAlign: "center", padding: 12, backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.borderSubtle, lineHeight: 18 },
   status: { color: theme.colors.text, fontSize: 13, textAlign: "center", marginTop: 12, padding: 12, backgroundColor: theme.colors.surface, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.borderSubtle },
 
   footer: { padding: 20, borderTopWidth: 1, borderTopColor: theme.colors.borderSubtle, backgroundColor: theme.colors.bg },

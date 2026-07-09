@@ -23,7 +23,9 @@ import httpx
 import io
 import csv
 import json as _json
-import stripe
+import hmac
+import hashlib
+import razorpay
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
@@ -39,12 +41,13 @@ JWT_SECRET = os.environ["JWT_SECRET"]
 EMERGENT_LLM_KEY = os.environ["EMERGENT_LLM_KEY"]
 SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY", "")
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "Centsible <noreply@centsible.dev>")
-STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY", "")
+RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID", "")
+RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "")
 APP_URL = os.environ.get("APP_URL", "http://localhost:3000")
 JWT_ALGO = "HS256"
 JWT_TTL_DAYS = 7
 
-stripe.api_key = STRIPE_API_KEY
+rzp_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET)) if RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET else None
 
 # ── App / DB ─────────────────────────────────────────────────────────────────
 client = AsyncIOMotorClient(MONGO_URL)
@@ -831,112 +834,114 @@ async def ai_chat_history(user: dict = Depends(require_user), session_id: Option
         })
     return {"items": items}
 
-# ── Stripe / Cent Pro ────────────────────────────────────────────────────────
+# ── Razorpay / Cent Pro ──────────────────────────────────────────────────────
 PLANS = {
-    "monthly": {"amount": 9900, "currency": "inr", "name": "Cent Pro Monthly", "interval": "month", "days": 30},
-    "yearly":  {"amount": 89900, "currency": "inr", "name": "Cent Pro Yearly", "interval": "year",  "days": 365},
+    "monthly": {"amount": 9900, "currency": "INR", "name": "Cent Pro Monthly", "days": 30},
+    "yearly":  {"amount": 89900, "currency": "INR", "name": "Cent Pro Yearly", "days": 365},
 }
 
 class CheckoutRequest(BaseModel):
     plan: str  # "monthly" | "yearly"
-    return_url: Optional[str] = None
 
-@api.post("/Billing/checkout")
-async def billing_checkout(body: CheckoutRequest, user: dict = Depends(require_user)):
+class VerifyPaymentRequest(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+    plan: str
+
+@api.post("/Billing/order")
+async def billing_order(body: CheckoutRequest, user: dict = Depends(require_user)):
+    """Create a Razorpay order — client uses this to launch checkout."""
     if body.plan not in PLANS:
         raise HTTPException(400, "Invalid plan")
-    if not STRIPE_API_KEY:
-        raise HTTPException(500, "Stripe not configured")
+    if not rzp_client:
+        raise HTTPException(500, "Razorpay not configured — add RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET to .env")
 
     p = PLANS[body.plan]
-    base_return = body.return_url or APP_URL
-    # Attach session id placeholder so we can verify on return
-    success_url = f"{base_return}?checkout=success&session_id={{CHECKOUT_SESSION_ID}}"
-    cancel_url = f"{base_return}?checkout=cancel"
-
+    receipt = f"cent_{user['user_id'][-16:]}_{int(now_utc().timestamp())}"[:40]
     try:
-        session = stripe.checkout.Session.create(
-            mode="subscription",
-            payment_method_types=["card"],
-            line_items=[{
-                "price_data": {
-                    "currency": p["currency"],
-                    "product_data": {"name": p["name"], "description": "Unlock unlimited AI chats, deep analytics, PDF+CSV export, and premium finance insights."},
-                    "recurring": {"interval": p["interval"]},
-                    "unit_amount": p["amount"],
-                },
-                "quantity": 1,
-            }],
-            customer_email=user.get("email"),
-            success_url=success_url,
-            cancel_url=cancel_url,
-            metadata={"user_id": user["user_id"], "plan": body.plan},
-            subscription_data={"metadata": {"user_id": user["user_id"], "plan": body.plan}},
-        )
-        # Record intent
+        order = rzp_client.order.create({
+            "amount": p["amount"],
+            "currency": p["currency"],
+            "receipt": receipt,
+            "payment_capture": 1,
+            "notes": {"user_id": user["user_id"], "plan": body.plan, "email": user.get("email") or ""},
+        })
         await db.billing_sessions.insert_one({
-            "session_id": session.id,
+            "order_id": order["id"],
             "user_id": user["user_id"],
             "plan": body.plan,
             "amount": p["amount"],
-            "status": "pending",
+            "status": "created",
             "created_at": now_utc(),
         })
-        return {"url": session.url, "session_id": session.id}
+        return {
+            "order_id": order["id"],
+            "amount": order["amount"],
+            "currency": order["currency"],
+            "key_id": RAZORPAY_KEY_ID,
+            "plan_name": p["name"],
+            "user_name": user.get("name"),
+            "user_email": user.get("email"),
+            "user_phone": user.get("phone"),
+        }
     except Exception as e:
-        log.error(f"Stripe checkout error: {e}")
-        raise HTTPException(500, f"Checkout failed: {e}")
+        log.error(f"Razorpay order error: {e}")
+        raise HTTPException(500, f"Order failed: {e}")
 
-@api.get("/Billing/status")
-async def billing_status(session_id: str, user: dict = Depends(require_user)):
-    """Called by app after redirect to verify + activate Pro."""
-    if not session_id:
-        raise HTTPException(400, "session_id required")
+@api.post("/Billing/verify")
+async def billing_verify(body: VerifyPaymentRequest, user: dict = Depends(require_user)):
+    """Verify payment signature and activate Pro."""
+    if not rzp_client:
+        raise HTTPException(500, "Razorpay not configured")
     try:
-        session = stripe.checkout.Session.retrieve(session_id)
-    except Exception as e:
-        raise HTTPException(400, f"Invalid session: {e}")
+        rzp_client.utility.verify_payment_signature({
+            "razorpay_order_id": body.razorpay_order_id,
+            "razorpay_payment_id": body.razorpay_payment_id,
+            "razorpay_signature": body.razorpay_signature,
+        })
+    except razorpay.errors.SignatureVerificationError:
+        raise HTTPException(400, "Invalid payment signature")
 
-    if session.metadata.get("user_id") != user["user_id"]:
-        raise HTTPException(403, "Not your session")
-
-    paid = session.payment_status == "paid" or session.status == "complete"
-    plan = session.metadata.get("plan", "monthly")
-    if paid:
-        expires = now_utc() + timedelta(days=PLANS.get(plan, PLANS["monthly"])["days"])
-        await db.users.update_one(
-            {"user_id": user["user_id"]},
-            {"$set": {
-                "is_pro": True,
-                "pro_plan": plan,
-                "pro_expires_at": expires,
-                "stripe_customer_id": session.customer,
-            }},
-        )
-        await db.billing_sessions.update_one(
-            {"session_id": session_id},
-            {"$set": {"status": "paid", "confirmed_at": now_utc()}},
-        )
-        updated = await get_user_by_id(user["user_id"])
-        return {"paid": True, "plan": plan, "user": _user_view(updated)}
-    return {"paid": False}
+    plan = body.plan if body.plan in PLANS else "monthly"
+    expires = now_utc() + timedelta(days=PLANS[plan]["days"])
+    await db.users.update_one(
+        {"user_id": user["user_id"]},
+        {"$set": {
+            "is_pro": True,
+            "pro_plan": plan,
+            "pro_expires_at": expires,
+            "razorpay_payment_id": body.razorpay_payment_id,
+        }},
+    )
+    await db.billing_sessions.update_one(
+        {"order_id": body.razorpay_order_id},
+        {"$set": {"status": "paid", "payment_id": body.razorpay_payment_id, "confirmed_at": now_utc()}},
+    )
+    updated = await get_user_by_id(user["user_id"])
+    return {"paid": True, "plan": plan, "user": _user_view(updated)}
 
 @api.get("/Billing/plans")
 async def billing_plans():
-    return {"plans": [
-        {"id": "monthly", "name": "Cent Pro Monthly", "amount": 99,  "currency": "INR", "interval": "month", "highlight": "Cancel anytime"},
-        {"id": "yearly",  "name": "Cent Pro Yearly",  "amount": 899, "currency": "INR", "interval": "year",  "highlight": "Save 24% · 2 months free"},
-    ]}
+    return {
+        "razorpay_enabled": bool(rzp_client),
+        "plans": [
+            {"id": "monthly", "name": "Cent Pro Monthly", "amount": 99,  "currency": "INR", "interval": "month", "highlight": "Cancel anytime"},
+            {"id": "yearly",  "name": "Cent Pro Yearly",  "amount": 899, "currency": "INR", "interval": "year",  "highlight": "Save 24% · 2 months free"},
+        ],
+    }
 
 @api.post("/Billing/mock-activate")
 async def billing_mock_activate(body: dict, user: dict = Depends(require_user)):
-    """Dev helper: activate Pro without going through Stripe checkout.
-    Only usable when STRIPE_API_KEY is the emergent test key.
-    """
-    if not STRIPE_API_KEY.startswith("sk_test"):
-        raise HTTPException(403, "Only allowed in test mode")
+    """Dev helper: activate Pro without Razorpay checkout (test mode only)."""
+    if rzp_client is not None:
+        # Only allow when Razorpay is not yet configured OR key is test-mode
+        if not RAZORPAY_KEY_ID.startswith("rzp_test"):
+            raise HTTPException(403, "Only allowed in test mode")
     plan = body.get("plan", "monthly")
-    expires = now_utc() + timedelta(days=PLANS.get(plan, PLANS["monthly"])["days"])
+    if plan not in PLANS:
+        plan = "monthly"
+    expires = now_utc() + timedelta(days=PLANS[plan]["days"])
     await db.users.update_one(
         {"user_id": user["user_id"]},
         {"$set": {"is_pro": True, "pro_plan": plan, "pro_expires_at": expires}},
