@@ -99,7 +99,7 @@ public class TransactionsController : ControllerBase
 
         var transactionId = await _mediator.Send(command, cancellationToken);
 
-        return Accepted(new { transactionId, TransactionId = transactionId, Status = "Saved" });
+        return Accepted(new { transactionId, status = "Saved" });
     }
 
     // PATCH endpoint to update transaction category
