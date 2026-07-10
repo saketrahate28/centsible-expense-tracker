@@ -87,7 +87,8 @@ public class BillingController : ControllerBase
         var user = await _context.Users.FindAsync(new object[] { userId }, ct);
         if (user == null) return NotFound(new { message = "User not found." });
 
-        var receipt = $"cent_{userId.ToString()[..8]}_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}"[..40];
+        var receiptRaw = $"cent_{userId.ToString()[..8]}_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+        var receipt = receiptRaw.Length > 40 ? receiptRaw[..40] : receiptRaw;
 
         try
         {
