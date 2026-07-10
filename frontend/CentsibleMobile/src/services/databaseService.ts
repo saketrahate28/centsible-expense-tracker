@@ -174,6 +174,14 @@ export const cleanupOldTransactions = async (days: number = 90) => {
     );
 };
 
+export const updateLocalTransactionCategory = async (localId: number, category: string) => {
+    const db = await SQLite.openDatabaseAsync(DATABASE_NAME);
+    await db.runAsync(
+        'UPDATE local_transactions SET category = ? WHERE id = ?',
+        [category, localId]
+    );
+};
+
 export default {
     initDatabase,
     upsertLocalTransaction,
@@ -182,4 +190,6 @@ export default {
     getUnsyncedCount,
     markAsSynced,
     cleanupOldTransactions,
+    updateLocalTransactionCategory,
 };
+

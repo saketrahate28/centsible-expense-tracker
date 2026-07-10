@@ -5,6 +5,9 @@ import { getLocalTransactions, getUnsyncedCount } from './databaseService';
 import { flushSyncQueue } from './syncQueueService';
 
 function getBaseUrl() {
+    if (process.env.EXPO_PUBLIC_API_URL) {
+        return process.env.EXPO_PUBLIC_API_URL;
+    }
     if (__DEV__) {
         const hostUri = Constants.expoConfig?.hostUri;
         const devIp = hostUri ? hostUri.split(':')[0] : '10.0.2.2';
@@ -250,4 +253,68 @@ export const saveSmsTransaction = async (amount: string, note: string, paymentMe
     }
 };
 
+export const updateTransactionCategory = async (transactionId: string, categoryId: number) => {
+    try {
+        const response = await api.patch(`/Transactions/${transactionId}/category`, { categoryId });
+        return response.data;
+    } catch (error) {
+        console.error('Failed to update category:', error);
+        throw error;
+    }
+};
+
+// ── Billing / Razorpay Pro ────────────────────────────────────────────────────
+
+export type BillingPlan = {
+    id: 'monthly' | 'yearly';
+    name: string;
+    amount: number;        // In ₹ (e.g. 99)
+    currency: string;
+    interval: string;
+    highlight: string;
+};
+
+export type BillingPlansResponse = {
+    razorpayEnabled: boolean;
+    keyId: string | null;
+    plans: BillingPlan[];
+};
+
+export type BillingOrderResponse = {
+    orderId: string;
+    amount: number;        // In paise (9900 = ₹99)
+    currency: string;
+    keyId: string;
+    planName: string;
+    userName?: string;
+    userEmail?: string;
+    userPhone?: string;
+};
+
+export const getBillingPlans = async (): Promise<BillingPlansResponse> => {
+    const response = await api.get('/Billing/plans');
+    return response.data;
+};
+
+export const createBillingOrder = async (plan: 'monthly' | 'yearly'): Promise<BillingOrderResponse> => {
+    const response = await api.post('/Billing/order', { plan });
+    return response.data;
+};
+
+export const verifyBillingPayment = async (payload: {
+    razorpayOrderId: string;
+    razorpayPaymentId: string;
+    razorpaySignature: string;
+    plan: string;
+}) => {
+    const response = await api.post('/Billing/verify', payload);
+    return response.data;
+};
+
+export const mockActivatePro = async (plan: 'monthly' | 'yearly' = 'monthly') => {
+    const response = await api.post('/Billing/mock-activate', { plan });
+    return response.data;
+};
+
 export default api;
+

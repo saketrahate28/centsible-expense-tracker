@@ -7,13 +7,25 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../../App';
-import { getDashboardData } from '../services/api';
+import { getDashboardData, updateTransactionCategory } from '../services/api';
 import { syncHistoricalSms } from '../services/smsSyncService';
 import { getStoredUser, AuthUser } from '../services/authService';
 import { flushSyncQueue } from '../services/syncQueueService';
 import api from '../services/api';
 
 const { width } = Dimensions.get('window');
+
+const CATEGORIES_LIST = [
+    { id: 1, name: "Transport", icon: "car-outline", color: "#60a5fa" },
+    { id: 2, name: "Food & Drinks", icon: "fast-food-outline", color: "#f87171" },
+    { id: 3, name: "Shopping", icon: "cart-outline", color: "#a78bfa" },
+    { id: 4, name: "Groceries", icon: "cart-outline", color: "#34d399" },
+    { id: 5, name: "Entertainment", icon: "movie-open-outline", color: "#fbbf24" },
+    { id: 6, name: "Bills & Utilities", icon: "receipt", color: "#94a3b8" },
+    { id: 7, name: "Health", icon: "heart-pulse", color: "#f43f5e" },
+    { id: 8, name: "Education", icon: "school-outline", color: "#22d3ee" },
+    { id: 9, name: "Investment & Finance", icon: "trending-up", color: "#a3e635" },
+];
 
 type DashboardData = {
     totalBalance: number;
@@ -53,6 +65,27 @@ export default function DashboardScreen({ navigation }: Props) {
     const [syncProgress, setSyncProgress] = useState<string | null>(null);
     const [pendingSync, setPendingSync] = useState(0);
     const [aiInsight, setAiInsight] = useState('');
+    const [selectedTxId, setSelectedTxId] = useState<string | null>(null);
+    const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+
+    const handleCategoryUpdate = async (categoryId: number, categoryName: string) => {
+        if (!selectedTxId) return;
+        try {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            if (selectedTxId.startsWith('local-')) {
+                const localId = parseInt(selectedTxId.replace('local-', ''), 10);
+                const { updateLocalTransactionCategory } = require('../services/databaseService');
+                await updateLocalTransactionCategory(localId, categoryName);
+            } else {
+                await updateTransactionCategory(selectedTxId, categoryId);
+            }
+            setShowCategoryPicker(false);
+            setSelectedTxId(null);
+            fetchData(false);
+        } catch (e) {
+            Alert.alert("Error", "Could not update category. Please try again.");
+        }
+    };
 
     const handleSmsSync = async () => {
         if (Platform.OS !== 'android') {
@@ -424,12 +457,28 @@ export default function DashboardScreen({ navigation }: Props) {
                 </View>
 
                 {data?.recentTransactions.map((t) => {
+                    const isUncategorized = t.categoryName === 'Uncategorized';
                     return (
-                        <View key={t.id} style={styles.transactionRow}>
+                        <TouchableOpacity
+                            key={t.id}
+                            style={styles.transactionRow}
+                            onPress={() => {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                setSelectedTxId(t.id);
+                                setShowCategoryPicker(true);
+                            }}
+                        >
                             {/* Brand-colored payment icon — much cleaner than PNG logos */}
                             {getPaymentIcon(t.paymentMethod, t.categoryName)}
                             <View style={styles.txDetails}>
-                                <Text style={styles.txMerchant}>{t.merchantName || t.categoryName}</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                    <Text style={styles.txMerchant}>{t.merchantName || t.categoryName}</Text>
+                                    {isUncategorized && (
+                                        <View style={styles.uncategorizedBadge}>
+                                            <Text style={styles.uncategorizedBadgeText}>Assign Category</Text>
+                                        </View>
+                                    )}
+                                </View>
                                 <Text style={styles.txCategory}>
                                     {t.categoryName}{t.paymentMethod ? ` · ${t.paymentMethod}` : ''}
                                 </Text>
@@ -437,7 +486,7 @@ export default function DashboardScreen({ navigation }: Props) {
                             <View style={styles.txAmountContainer}>
                                 <Text style={styles.txAmount}>-₹{t.amount.toLocaleString('en-IN')}</Text>
                             </View>
-                        </View>
+                        </TouchableOpacity>
                     );
                 })}
 
@@ -565,6 +614,43 @@ export default function DashboardScreen({ navigation }: Props) {
                                 <Text style={styles.promptSaveText}>Save</Text>
                             </TouchableOpacity>
                         </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Category Picker Modal */}
+            <Modal
+                visible={showCategoryPicker}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setShowCategoryPicker(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Choose Category</Text>
+                            <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
+                                <MaterialCommunityIcons name="close" size={24} color="#FFF" />
+                            </TouchableOpacity>
+                        </View>
+                        <FlatList
+                            data={CATEGORIES_LIST}
+                            keyExtractor={(item) => String(item.id)}
+                            numColumns={2}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={[
+                                        styles.categoryGridItem,
+                                        { borderColor: item.color + '40' }
+                                    ]}
+                                    onPress={() => handleCategoryUpdate(item.id, item.name)}
+                                >
+                                    <MaterialCommunityIcons name={item.icon as any} size={24} color={item.color} style={{ marginBottom: 8 }} />
+                                    <Text style={styles.categoryGridItemText}>{item.name}</Text>
+                                </TouchableOpacity>
+                            )}
+                            contentContainerStyle={{ paddingBottom: 30 }}
+                        />
                     </View>
                 </View>
             </Modal>
@@ -959,5 +1045,34 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_700Bold',
         fontSize: 15,
         color: '#080810',
+    },
+    uncategorizedBadge: {
+        backgroundColor: 'rgba(251,191,36,0.12)',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: 'rgba(251,191,36,0.25)',
+    },
+    uncategorizedBadgeText: {
+        fontFamily: 'Inter_600SemiBold',
+        fontSize: 9,
+        color: '#fbbf24',
+    },
+    categoryGridItem: {
+        flex: 1,
+        backgroundColor: '#1E1E28',
+        borderRadius: 16,
+        padding: 16,
+        margin: 6,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+    },
+    categoryGridItemText: {
+        fontFamily: 'Inter_500Medium',
+        fontSize: 12,
+        color: '#FFF',
+        textAlign: 'center',
     }
 });

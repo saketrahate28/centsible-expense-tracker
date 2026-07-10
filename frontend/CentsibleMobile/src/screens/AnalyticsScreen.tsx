@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { getAnalyticsData } from '../services/api';
 
 const { width } = Dimensions.get('window');
@@ -71,6 +71,7 @@ type AnalyticsData = {
 };
 
 export default function AnalyticsScreen() {
+    const navigation = useNavigation<any>();
     const [timeframe, setTimeframe] = useState<'Week' | 'Month' | 'Year'>('Month');
     const [data, setData] = useState<AnalyticsData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -240,7 +241,16 @@ export default function AnalyticsScreen() {
                 </View>
 
                 {/* ── Categories Breakdown ─────────────────────────────── */}
-                <Text style={styles.breakdownTitle}>Category Breakdown</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <Text style={styles.breakdownTitle}>Category Breakdown</Text>
+                    <TouchableOpacity 
+                        style={styles.addManualBtn} 
+                        onPress={() => navigation.navigate('AddExpense')}
+                    >
+                        <MaterialCommunityIcons name="plus" size={14} color="#22d3ee" style={{ marginRight: 4 }} />
+                        <Text style={styles.addManualBtnText}>Add Manual</Text>
+                    </TouchableOpacity>
+                </View>
                 <View style={styles.categoriesCard}>
                     {(data?.categories ?? []).map((cat, idx) => {
                         const pct = Math.round((cat.amount / (data?.totalSpend || 1)) * 100);
@@ -352,7 +362,9 @@ const styles = StyleSheet.create({
     termDef: { fontFamily: 'Inter_400Regular', fontSize: 14, color: '#A0A0B0', lineHeight: 22 },
 
     // Categories
-    breakdownTitle: { fontFamily: 'Outfit_700Bold', fontSize: 20, color: '#FFF', marginBottom: 16 },
+    breakdownTitle: { fontFamily: 'Outfit_700Bold', fontSize: 20, color: '#FFF', marginBottom: 0 },
+    addManualBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1E1E28', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: '#2A2A35' },
+    addManualBtnText: { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: '#22d3ee' },
     categoriesCard: { backgroundColor: '#0E0F1A', borderRadius: 24, padding: 20, marginBottom: 20, borderWidth: 1, borderColor: '#1E1E2A' },
     catRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
     catEmoji: { width: 46, height: 46, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
