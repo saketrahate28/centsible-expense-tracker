@@ -263,5 +263,58 @@ export const updateTransactionCategory = async (transactionId: string, categoryI
     }
 };
 
+// ── Billing / Razorpay Pro ────────────────────────────────────────────────────
+
+export type BillingPlan = {
+    id: 'monthly' | 'yearly';
+    name: string;
+    amount: number;        // In ₹ (e.g. 99)
+    currency: string;
+    interval: string;
+    highlight: string;
+};
+
+export type BillingPlansResponse = {
+    razorpayEnabled: boolean;
+    keyId: string | null;
+    plans: BillingPlan[];
+};
+
+export type BillingOrderResponse = {
+    orderId: string;
+    amount: number;        // In paise (9900 = ₹99)
+    currency: string;
+    keyId: string;
+    planName: string;
+    userName?: string;
+    userEmail?: string;
+    userPhone?: string;
+};
+
+export const getBillingPlans = async (): Promise<BillingPlansResponse> => {
+    const response = await api.get('/Billing/plans');
+    return response.data;
+};
+
+export const createBillingOrder = async (plan: 'monthly' | 'yearly'): Promise<BillingOrderResponse> => {
+    const response = await api.post('/Billing/order', { plan });
+    return response.data;
+};
+
+export const verifyBillingPayment = async (payload: {
+    razorpayOrderId: string;
+    razorpayPaymentId: string;
+    razorpaySignature: string;
+    plan: string;
+}) => {
+    const response = await api.post('/Billing/verify', payload);
+    return response.data;
+};
+
+export const mockActivatePro = async (plan: 'monthly' | 'yearly' = 'monthly') => {
+    const response = await api.post('/Billing/mock-activate', { plan });
+    return response.data;
+};
+
 export default api;
 

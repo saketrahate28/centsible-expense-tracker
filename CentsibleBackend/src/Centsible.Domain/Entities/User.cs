@@ -16,6 +16,11 @@ public class User
     public int MaxStreakDays { get; set; } = 0;
     public bool IsPremium { get; set; } = false;
 
+    // Razorpay Pro subscription
+    public string? ProPlan { get; set; }              // "monthly" | "yearly"
+    public DateTime? ProExpiresAt { get; set; }
+    public string? RazorpayPaymentId { get; set; }
+
     // Onboarding fields
     public bool IsOnboarded { get; set; } = false;
     public int? Age { get; set; }
